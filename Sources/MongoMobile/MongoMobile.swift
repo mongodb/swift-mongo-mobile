@@ -1,4 +1,4 @@
-// import libmongocapi
+import libmongodbcapi
 import MongoSwift
 
 /// Settings for constructing a `MongoClient`
