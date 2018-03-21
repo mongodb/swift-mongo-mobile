@@ -4,16 +4,16 @@ import MongoSwift
 /// Settings for constructing a `MongoClient`
 public struct MongoClientSettings {
   /// the database path to use
-  dbPath: String
+  let dbPath: String
 }
 
 public class MongoMobile {
-  private static databases: [String, OpaquePointer]
+  private static let databases: [String: OpaquePointer]
 
   /**
    * Perform required operations to initialize the embedded server.
    */
-  public static func init() {
+  public static func initialize() {
     // no-op for now
   }
 
@@ -35,8 +35,11 @@ public class MongoMobile {
    *
    * - Returns: a new `MongoClient`
    */
-  public static func create(MongoClientSettings settings) -> MongoClient {
-    guard let database = databases[settings.dbPath] else {
+  public static func create(settings: MongoClientSettings) -> MongoClient {
+    var database: OpaquePointer
+    if let _database = databases[settings.dbPath] {
+      database = _database
+    } else {
       database = libmongodbcapi_db_new(/* int argc, const char** argv, const char** envp */)
 
       if database == nil {
