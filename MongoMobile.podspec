@@ -20,6 +20,8 @@ Pod::Spec.new do |spec|
 
   spec.dependency 'MongoSwift', '~> 0'
 
+
+  ENV["MONGODB_MOBILE"] = "HERE IS A SOME SAMPLE DATA FOR MY COOL ENVIRONMENT VARIABLE"
   spec.prepare_command = <<-EOT
   mkdir -p MobileSDKs && cd MobileSDKs
   if [ ! -d iphonesimulator ]; then
