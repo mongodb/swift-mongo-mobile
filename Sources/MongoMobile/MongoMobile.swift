@@ -7,8 +7,12 @@ public struct MongoClientSettings {
   let dbPath: String
 }
 
+public enum MongoMobileError: Error {
+    case invalidClient()
+}
+
 public class MongoMobile {
-  private static let databases: [String: OpaquePointer]
+  private static var databases = [String: OpaquePointer]()
 
   /**
    * Perform required operations to initialize the embedded server.
@@ -21,7 +25,7 @@ public class MongoMobile {
    * Perform required operations to cleanup the embedded server.
    */
   public static func close() {
-    for (dbPath, database) in databases {
+    for (_, database) in databases {
       libmongodbcapi_db_destroy(database)
     }
   }
@@ -35,22 +39,22 @@ public class MongoMobile {
    *
    * - Returns: a new `MongoClient`
    */
-  public static func create(settings: MongoClientSettings) -> MongoClient {
+  public static func create(settings: MongoClientSettings) throws -> MongoClient {
     var database: OpaquePointer
     if let _database = databases[settings.dbPath] {
       database = _database
     } else {
-      database = libmongodbcapi_db_new(/* int argc, const char** argv, const char** envp */)
+      database = libmongodbcapi_db_new(0, nil, nil/* int argc, const char** argv, const char** envp */)
 
-      if database == nil {
-        // throw an error!
-      }
+      // if database == nil {
+      //   // throw an error!
+      // }
 
       databases[settings.dbPath] = database
     }
 
     guard let client_t = embedded_mongoc_client_new(database) else {
-      // throw an error!
+      throw MongoMobileError.invalidClient()
     }
 
     return MongoClient(fromPointer: client_t)
