@@ -48,6 +48,10 @@ Pod::Spec.new do |spec|
 
     # TEMPORARY
     sed -i '' '/#include "mongo\\/client\\/embedded\\/libmongodbcapi.h"/d' iphoneos/include/embedded_transport_layer.h
+    rm iphoneos/lib/libbson-1.0.dylib
+    cp iphoneos/lib/libbson-1.0.0.dylib iphoneos/lib/libbson-1.0.dylib
+    rm iphoneos/lib/libmongoc-1.0.dylib
+    cp iphoneos/lib/libmongoc-1.0.0.dylib iphoneos/lib/libmongoc-1.0.dylib
   fi
 
   if [ ! -d iphonesimulator ]; then
@@ -58,11 +62,15 @@ Pod::Spec.new do |spec|
 
     # TEMPORARY
     sed -i '' '/#include "mongo\\/client\\/embedded\\/libmongodbcapi.h"/d' iphonesimulator/include/embedded_transport_layer.h
+    rm iphonesimulator/lib/libbson-1.0.dylib
+    cp iphonesimulator/lib/libbson-1.0.0.dylib iphonesimulator/lib/libbson-1.0.dylib
+    rm iphonesimulator/lib/libmongoc-1.0.dylib
+    cp iphonesimulator/lib/libmongoc-1.0.0.dylib iphonesimulator/lib/libmongoc-1.0.dylib
   fi
   EOT
 
-  spec.ios.vendored_library = "MobileSDKs/iphonesimulator/lib/*"
-  spec.tvos.vendored_library = "MobileSDKs/appletvsimulator/lib/*"
+  spec.ios.vendored_library = "MobileSDKs/iphonesimulator/lib/*.dylib"
+  spec.tvos.vendored_library = "MobileSDKs/appletvsimulator/lib/*.dylib"
 
   spec.pod_target_xcconfig = {
     'SWIFT_INCLUDE_PATHS[sdk=iphoneos*]'  => [
