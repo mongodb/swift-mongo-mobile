@@ -3,7 +3,7 @@ import libmongodbcapi
 /// Settings for constructing a `MongoClient`
 public struct MongoClientSettings {
   /// the database path to use
-  let dbPath: String
+  public let dbPath: String
 }
 
 public enum MongoMobileError: Error {
@@ -38,7 +38,8 @@ public class MongoMobile {
    *
    * - Returns: a new `MongoClient`
    */
-  public static func create(settings: MongoClientSettings) throws -> MongoClient {
+  public static func create(/* settings: MongoClientSettings */) throws -> MongoClient {
+    let settings = MongoClientSettings(dbPath: "test-mongo-mobile")
     var database: OpaquePointer
     if let _database = databases[settings.dbPath] {
       database = _database
