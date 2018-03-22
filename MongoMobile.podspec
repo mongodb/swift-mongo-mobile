@@ -45,7 +45,7 @@ Pod::Spec.new do |spec|
     rm mobile-sdks.tgz
 
     # TEMPORARY
-    sed -i '' '/#include "mongo\/client\/embedded\/libmongodbcapi.h"/d' MobileSDKs/iphonesimulator/include/embedded_transport_layer.h
+    sed -i '' '/#include "mongo\\/client\\/embedded\\/libmongodbcapi.h"/d' iphonesimulator/include/embedded_transport_layer.h
   fi
   EOT
 
