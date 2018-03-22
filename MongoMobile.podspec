@@ -38,6 +38,17 @@ Pod::Spec.new do |spec|
 
   # download mobile SDKs
   mkdir -p MobileSDKs && cd MobileSDKs
+
+  if [ ! -d iphoneos ]; then
+    curl https://s3.amazonaws.com/mciuploads/mongodb-mongo-master/ios-102-debug/17eebc8ac8bfcff0b8d2b8b2a1d97187efd6efca/embedded_sdk/mongodb_mongo_master_ios_102_debug_patch_17eebc8ac8bfcff0b8d2b8b2a1d97187efd6efca_5ab13a42e3c33148ba80034f_18_03_20_16_46_13.tgz > mobile-sdks.tgz
+    mkdir iphoneos
+    tar -xzf mobile-sdks.tgz -C iphoneos --strip-components 2
+    rm mobile-sdks.tgz
+
+    # TEMPORARY
+    sed -i '' '/#include "mongo\\/client\\/embedded\\/libmongodbcapi.h"/d' iphoneos/include/embedded_transport_layer.h
+  fi
+
   if [ ! -d iphonesimulator ]; then
     curl https://s3.amazonaws.com/mciuploads/mongodb-mongo-master/ios-sim-102-debug/17eebc8ac8bfcff0b8d2b8b2a1d97187efd6efca/embedded_sdk/mongodb_mongo_master_ios_sim_102_debug_patch_17eebc8ac8bfcff0b8d2b8b2a1d97187efd6efca_5ab13a42e3c33148ba80034f_18_03_20_16_46_13.tgz > mobile-sdks.tgz
     mkdir iphonesimulator
@@ -50,7 +61,15 @@ Pod::Spec.new do |spec|
   EOT
 
   spec.pod_target_xcconfig = {
-    'SWIFT_INCLUDE_PATHS[sdk=iphoneos*]'         => '"$(PODS_TARGET_SRCROOT)/MobileSDKs/iphoneos/include" "$(PODS_TARGET_SRCROOT)/Sources/libmongodbcapi/include"',
+    'SWIFT_INCLUDE_PATHS[sdk=iphoneos*]'  => [
+      '"$(PODS_TARGET_SRCROOT)/MobileSDKs/iphoneos/include"',
+      '"$(PODS_TARGET_SRCROOT)/MobileSDKs/iphoneos/include/libbson-1.0"',
+      '"$(PODS_TARGET_SRCROOT)/MobileSDKs/iphoneos/include/libmongoc-1.0"',
+      '"$(PODS_TARGET_SRCROOT)/Sources/libmongodbcapi"',
+      '"$(PODS_TARGET_SRCROOT)/Sources/libmongoc"',
+      '"$(PODS_TARGET_SRCROOT)/Sources/libbson"',
+    ].join(' '),
+
     'SWIFT_INCLUDE_PATHS[sdk=iphonesimulator*]'  => [
       '"$(PODS_TARGET_SRCROOT)/MobileSDKs/iphonesimulator/include"',
       '"$(PODS_TARGET_SRCROOT)/MobileSDKs/iphonesimulator/include/libbson-1.0"',
