@@ -61,6 +61,9 @@ Pod::Spec.new do |spec|
   fi
   EOT
 
+  spec.ios.vendored_library = "MobileSDKs/iphonesimulator/lib/*"
+  spec.tvos.vendored_library = "MobileSDKs/appletvsimulator/lib/*"
+
   spec.pod_target_xcconfig = {
     'SWIFT_INCLUDE_PATHS[sdk=iphoneos*]'  => [
       '"$(PODS_TARGET_SRCROOT)/MobileSDKs/iphoneos/include"',
