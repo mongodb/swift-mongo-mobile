@@ -20,19 +20,16 @@ Pod::Spec.new do |spec|
 
   spec.dependency 'MongoSwift', '~> 0'
 
-
-  ENV["MONGODB_MOBILE"] = "HERE IS A SOME SAMPLE DATA FOR MY COOL ENVIRONMENT VARIABLE"
+  ENV["PKG_CONFIG_PATH"] = "$(PODS_TARGET_SRCROOT)/MobileSDKs/pkgconfig"
   spec.prepare_command = <<-EOT
   mkdir -p MobileSDKs && cd MobileSDKs
+
   if [ ! -d iphonesimulator ]; then
     wget https://s3.amazonaws.com/mciuploads/mongodb-mongo-master/ios-sim-102-debug/17eebc8ac8bfcff0b8d2b8b2a1d97187efd6efca/embedded_sdk/mongodb_mongo_master_ios_sim_102_debug_patch_17eebc8ac8bfcff0b8d2b8b2a1d97187efd6efca_5ab13a42e3c33148ba80034f_18_03_20_16_46_13.tgz
     mkdir iphonesimulator
     tar -xzf mongodb_mongo_master_ios_sim_102_debug_patch_17eebc8ac8bfcff0b8d2b8b2a1d97187efd6efca_5ab13a42e3c33148ba80034f_18_03_20_16_46_13.tgz -C iphonesimulator --strip-components 2
     rm *.tgz
   fi
-
-  # mkdir iphoneos && tar -xzf mongodb_mongo_master_ios_102_debug_patch_17eebc8ac8bfcff0b8d2b8b2a1d97187efd6efca_5ab13a42e3c33148ba80034f_18_03_20_16_46_13.tgz -C ios --strip-components 1
-  # mkdir iphonesimulator && tar -xzf mongodb_mongo_master_ios_sim_102_debug_patch_17eebc8ac8bfcff0b8d2b8b2a1d97187efd6efca_5ab13a42e3c33148ba80034f_18_03_20_16_46_13.tgz -C ios-sim --strip-components 1
   EOT
 
   spec.pod_target_xcconfig = {
@@ -46,6 +43,4 @@ Pod::Spec.new do |spec|
     'LIBRARY_SEARCH_PATHS[sdk=appletvos*]'       => '$(PODS_TARGET_SRCROOT)/MobileSDKs/appletvos/lib',
     'LIBRARY_SEARCH_PATHS[sdk=appletvsimulator*]'=> '$(PODS_TARGET_SRCROOT)/MobileSDKs/appletvsimulator/lib'
   }
-
-
 end
