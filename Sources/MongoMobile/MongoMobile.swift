@@ -1,5 +1,4 @@
 import libmongodbcapi
-import MongoSwift
 
 /// Settings for constructing a `MongoClient`
 public struct MongoClientSettings {
