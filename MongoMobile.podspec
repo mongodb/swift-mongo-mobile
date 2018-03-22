@@ -17,7 +17,8 @@ Pod::Spec.new do |spec|
   spec.preserve_paths = [
     "Sources/libmongodbcapi/*.{h,modulemap}",
     "Sources/libbson/*.{h,modulemap}",
-    "Sources/libmongoc/*.{h,modulemap}"
+    "Sources/libmongoc/*.{h,modulemap}",
+    "MobileSDKs"
   ]
 
   spec.prepare_command = <<-EOT
