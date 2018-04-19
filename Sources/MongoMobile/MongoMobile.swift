@@ -8,6 +8,19 @@ public struct MongoClientSettings {
 
 public enum MongoMobileError: Error {
     case invalidClient()
+    case invalidDatabase()
+}
+
+private func mongo_mobile_log_callback(userDataPtr: UnsafeMutableRawPointer?,
+                                       messagePtr: UnsafePointer<Int8>?,
+                                       componentPtr: UnsafePointer<Int8>?,
+                                       contextPtr: UnsafePointer<Int8>?,
+                                       severityPtr: Int32)
+{
+    let message = String(cString: messagePtr!)
+//    let component = String(cString: componentPtr!)
+//    let context = String(cString: contextPtr!)
+    print(message);
 }
 
 public class MongoMobile {
@@ -17,7 +30,17 @@ public class MongoMobile {
    * Perform required operations to initialize the embedded server.
    */
   public static func initialize() {
-    // no-op for now
+    print("initializing....")
+    var initParams = libmongodbcapi_init_params()
+    initParams.log_callback = mongo_mobile_log_callback
+    initParams.log_flags = 4 // LIBMONGODB_CAPI_LOG_CALLBACK
+
+    let result = libmongodbcapi_init(&initParams);
+    if libmongodbcapi_error(result) != LIBMONGODB_CAPI_SUCCESS {
+        print("error initializing: \(result)")
+    }
+
+    print("initialized with result: \(result)")
   }
 
   /**
@@ -44,12 +67,18 @@ public class MongoMobile {
     if let _database = databases[settings.dbPath] {
       database = _database
     } else {
-      database = libmongodbcapi_db_new(nil /* const char* yaml_config */)
+      // let appSupportDirPath =
+      //   String(describing: FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first)
+      // print("appSupportDirPath: \(appSupportDirPath)")
 
-      // if database == nil {
-      //   // throw an error!
-      // }
+      let dataPath = NSHomeDirectory()
 
+      let yamlData = "{ \"storage\": { \"dbpath\": \"\(dataPath)\" } }";
+      guard let _db = libmongodbcapi_db_new(yamlData) else {
+          throw MongoMobileError.invalidDatabase()
+      }
+
+      database = _db
       databases[settings.dbPath] = database
     }
 
