@@ -41,7 +41,7 @@ Pod::Spec.new do |spec|
   mkdir -p MobileSDKs && cd MobileSDKs
 
   if [ ! -d iphoneos ]; then
-    curl https://s3.amazonaws.com/mciuploads/mongodb-mongo-master/embedded-sdk/embedded-sdk-iphoneos-10.2-debug/84f56ce808fc985f2c340f05fc7f7e63ccbdb8e7/mongodb_mongo_master_embedded_sdk_iphoneos_10.2_debug_patch_84f56ce808fc985f2c340f05fc7f7e63ccbdb8e7_5ad6beaee3c3316b1511aa4c_18_04_18_03_43_05.tgz > mobile-sdks.tgz
+    curl https://s3.amazonaws.com/mciuploads/mongodb-mongo-master/embedded-sdk/embedded-sdk-iphoneos-10.2/f4652f501d7b5642a1ad965bc8eefad7803bd120/mongodb_mongo_master_embedded_sdk_iphoneos_10.2_patch_f4652f501d7b5642a1ad965bc8eefad7803bd120_5ad8f9d8e3c3311e603f9e21_18_04_19_20_19_54.tgz > mobile-sdks.tgz
     mkdir iphoneos
     tar -xzf mobile-sdks.tgz -C iphoneos --strip-components 2
     rm mobile-sdks.tgz
@@ -54,7 +54,7 @@ Pod::Spec.new do |spec|
   fi
 
   if [ ! -d iphonesimulator ]; then
-    curl https://s3.amazonaws.com/mciuploads/mongodb-mongo-master/embedded-sdk/embedded-sdk-iphonesimulator-10.2-debug/84f56ce808fc985f2c340f05fc7f7e63ccbdb8e7/mongodb_mongo_master_embedded_sdk_iphonesimulator_10.2_debug_patch_84f56ce808fc985f2c340f05fc7f7e63ccbdb8e7_5ad6beaee3c3316b1511aa4c_18_04_18_03_43_05.tgz > mobile-sdks.tgz
+    curl https://s3.amazonaws.com/mciuploads/mongodb-mongo-master/embedded-sdk/embedded-sdk-iphonesimulator-10.2/f4652f501d7b5642a1ad965bc8eefad7803bd120/mongodb_mongo_master_embedded_sdk_iphonesimulator_10.2_patch_f4652f501d7b5642a1ad965bc8eefad7803bd120_5ad8f9d8e3c3311e603f9e21_18_04_19_20_19_54.tgz > mobile-sdks.tgz
 
     mkdir iphonesimulator
     tar -xzf mobile-sdks.tgz -C iphonesimulator --strip-components 2
@@ -94,6 +94,13 @@ Pod::Spec.new do |spec|
     'SWIFT_INCLUDE_PATHS[sdk=appletvos*]'        => '$(PODS_TARGET_SRCROOT)/MobileSDKs/appletvos/include',
     'SWIFT_INCLUDE_PATHS[sdk=appletvsimulator*]' => '$(PODS_TARGET_SRCROOT)/MobileSDKs/appletvsimulator/include',
 
+    'LIBRARY_SEARCH_PATHS[sdk=iphoneos*]'        => '$(PODS_TARGET_SRCROOT)/MobileSDKs/iphoneos/lib',
+    'LIBRARY_SEARCH_PATHS[sdk=iphonesimulator*]' => '$(PODS_TARGET_SRCROOT)/MobileSDKs/iphonesimulator/lib',
+    'LIBRARY_SEARCH_PATHS[sdk=appletvos*]'       => '$(PODS_TARGET_SRCROOT)/MobileSDKs/appletvos/lib',
+    'LIBRARY_SEARCH_PATHS[sdk=appletvsimulator*]'=> '$(PODS_TARGET_SRCROOT)/MobileSDKs/appletvsimulator/lib',
+  }
+
+  spec.user_target_xcconfig = {
     'LIBRARY_SEARCH_PATHS[sdk=iphoneos*]'        => '$(PODS_TARGET_SRCROOT)/MobileSDKs/iphoneos/lib',
     'LIBRARY_SEARCH_PATHS[sdk=iphonesimulator*]' => '$(PODS_TARGET_SRCROOT)/MobileSDKs/iphonesimulator/lib',
     'LIBRARY_SEARCH_PATHS[sdk=appletvos*]'       => '$(PODS_TARGET_SRCROOT)/MobileSDKs/appletvos/lib',
