@@ -44,7 +44,7 @@ public class MongoMobile {
     if let _database = databases[settings.dbPath] {
       database = _database
     } else {
-      database = libmongodbcapi_db_new(0, nil, nil/* int argc, const char** argv, const char** envp */)
+      database = libmongodbcapi_db_new(nil /* const char* yaml_config */)
 
       // if database == nil {
       //   // throw an error!
