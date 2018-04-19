@@ -41,13 +41,12 @@ Pod::Spec.new do |spec|
   mkdir -p MobileSDKs && cd MobileSDKs
 
   if [ ! -d iphoneos ]; then
-    curl https://s3.amazonaws.com/mciuploads/mongodb-mongo-master/ios-102-debug/17eebc8ac8bfcff0b8d2b8b2a1d97187efd6efca/embedded_sdk/mongodb_mongo_master_ios_102_debug_patch_17eebc8ac8bfcff0b8d2b8b2a1d97187efd6efca_5ab13a42e3c33148ba80034f_18_03_20_16_46_13.tgz > mobile-sdks.tgz
+    curl https://s3.amazonaws.com/mciuploads/mongodb-mongo-master/embedded-sdk/embedded-sdk-iphoneos-10.2-debug/84f56ce808fc985f2c340f05fc7f7e63ccbdb8e7/mongodb_mongo_master_embedded_sdk_iphoneos_10.2_debug_patch_84f56ce808fc985f2c340f05fc7f7e63ccbdb8e7_5ad6beaee3c3316b1511aa4c_18_04_18_03_43_05.tgz > mobile-sdks.tgz
     mkdir iphoneos
     tar -xzf mobile-sdks.tgz -C iphoneos --strip-components 2
     rm mobile-sdks.tgz
 
     # TEMPORARY
-    sed -i '' '/#include "mongo\\/client\\/embedded\\/libmongodbcapi.h"/d' iphoneos/include/embedded_transport_layer.h
     rm iphoneos/lib/libbson-1.0.dylib
     cp iphoneos/lib/libbson-1.0.0.dylib iphoneos/lib/libbson-1.0.dylib
     rm iphoneos/lib/libmongoc-1.0.dylib
@@ -55,13 +54,13 @@ Pod::Spec.new do |spec|
   fi
 
   if [ ! -d iphonesimulator ]; then
-    curl https://s3.amazonaws.com/mciuploads/mongodb-mongo-master/ios-sim-102-debug/17eebc8ac8bfcff0b8d2b8b2a1d97187efd6efca/embedded_sdk/mongodb_mongo_master_ios_sim_102_debug_patch_17eebc8ac8bfcff0b8d2b8b2a1d97187efd6efca_5ab13a42e3c33148ba80034f_18_03_20_16_46_13.tgz > mobile-sdks.tgz
+    curl https://s3.amazonaws.com/mciuploads/mongodb-mongo-master/embedded-sdk/embedded-sdk-iphonesimulator-10.2-debug/84f56ce808fc985f2c340f05fc7f7e63ccbdb8e7/mongodb_mongo_master_embedded_sdk_iphonesimulator_10.2_debug_patch_84f56ce808fc985f2c340f05fc7f7e63ccbdb8e7_5ad6beaee3c3316b1511aa4c_18_04_18_03_43_05.tgz > mobile-sdks.tgz
+
     mkdir iphonesimulator
     tar -xzf mobile-sdks.tgz -C iphonesimulator --strip-components 2
     rm mobile-sdks.tgz
 
     # TEMPORARY
-    sed -i '' '/#include "mongo\\/client\\/embedded\\/libmongodbcapi.h"/d' iphonesimulator/include/embedded_transport_layer.h
     rm iphonesimulator/lib/libbson-1.0.dylib
     cp iphonesimulator/lib/libbson-1.0.0.dylib iphonesimulator/lib/libbson-1.0.dylib
     rm iphonesimulator/lib/libmongoc-1.0.dylib
@@ -73,6 +72,7 @@ Pod::Spec.new do |spec|
   spec.tvos.vendored_library = "MobileSDKs/appletvsimulator/lib/*.dylib"
 
   spec.pod_target_xcconfig = {
+    'OTHER_LDFLAGS[sdk=iphoneos*]' => '-rpath $(PODS_TARGET_SRCROOT)/MobileSDKs/iphoneos/lib',
     'SWIFT_INCLUDE_PATHS[sdk=iphoneos*]'  => [
       '"$(PODS_TARGET_SRCROOT)/MobileSDKs/iphoneos/include"',
       '"$(PODS_TARGET_SRCROOT)/MobileSDKs/iphoneos/include/libbson-1.0"',
@@ -82,6 +82,7 @@ Pod::Spec.new do |spec|
       '"$(PODS_TARGET_SRCROOT)/Sources/libbson"',
     ].join(' '),
 
+    'OTHER_LDFLAGS[sdk=iphonesimulator*]' => '-rpath $(PODS_TARGET_SRCROOT)/MobileSDKs/iphonesimulator/lib',
     'SWIFT_INCLUDE_PATHS[sdk=iphonesimulator*]'  => [
       '"$(PODS_TARGET_SRCROOT)/MobileSDKs/iphonesimulator/include"',
       '"$(PODS_TARGET_SRCROOT)/MobileSDKs/iphonesimulator/include/libbson-1.0"',
@@ -97,9 +98,5 @@ Pod::Spec.new do |spec|
     'LIBRARY_SEARCH_PATHS[sdk=iphonesimulator*]' => '$(PODS_TARGET_SRCROOT)/MobileSDKs/iphonesimulator/lib',
     'LIBRARY_SEARCH_PATHS[sdk=appletvos*]'       => '$(PODS_TARGET_SRCROOT)/MobileSDKs/appletvos/lib',
     'LIBRARY_SEARCH_PATHS[sdk=appletvsimulator*]'=> '$(PODS_TARGET_SRCROOT)/MobileSDKs/appletvsimulator/lib',
-
-    'LD_RUNPATH_SEARCH_PATHS' => '@loader_path/../lib'
   }
-
-   spec.user_target_xcconfig = { 'LD_RUNPATH_SEARCH_PATHS' => '@loader_path/../lib' }
 end
