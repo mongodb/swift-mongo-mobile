@@ -23,7 +23,8 @@ private func mongo_mobile_log_callback(userDataPtr: UnsafeMutableRawPointer?,
                                        severityPtr: Int32)
 {
     let message = String(cString: messagePtr!)
-    print(message);
+    let component = String(cString: componentPtr!)
+    print("[\(component)] \(message)")
 }
 
 public class MongoMobile {
@@ -65,30 +66,29 @@ public class MongoMobile {
    */
   public static func create(_ settings: MongoClientSettings) throws -> MongoClient {
     var database: OpaquePointer
-    if let _database = databases[settings.dbPath] {
-        database = _database
+    if let cachedDatabase = databases[settings.dbPath] {
+        database = cachedDatabase
     } else {
-        let databasePath = NSHomeDirectory()
         let configuration = [
             "storage": [
-                "dbPath": databasePath
+                "dbPath": settings.dbPath
             ]
         ]
 
         let configurationData = try JSONSerialization.data(withJSONObject: configuration)
         let configurationString = String(data: configurationData, encoding: .utf8)
-        guard let _db = libmongodbcapi_db_new(configurationString) else {
+        guard let capiDatabase = libmongodbcapi_db_new(configurationString) else {
             throw MongoMobileError.invalidDatabase()
         }
 
-        database = _db
+        database = capiDatabase
         databases[settings.dbPath] = database
     }
 
-    guard let client_t = embedded_mongoc_client_new(database) else {
+    guard let capiClient = embedded_mongoc_client_new(database) else {
         throw MongoMobileError.invalidClient()
     }
 
-    return MongoClient(fromPointer: client_t)
+    return MongoClient(fromPointer: capiClient)
   }
 }
