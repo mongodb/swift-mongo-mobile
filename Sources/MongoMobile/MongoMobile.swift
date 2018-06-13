@@ -40,13 +40,13 @@ private func mongo_mobile_log_callback(userDataPtr: UnsafeMutableRawPointer?,
                                        componentPtr: UnsafePointer<Int8>?,
                                        contextPtr: UnsafePointer<Int8>?,
                                        severityPtr: Int32) {
-    let message = messagePtr ? String(cString: messagePtr!) : ""
-    let component = componentPtr ? String(cString: componentPtr!) : ""
+    let message = messagePtr != nil ? String(cString: messagePtr!) : ""
+    let component = componentPtr != nil ? String(cString: componentPtr!) : ""
     print("[\(component)] \(message)")
 }
 
 /// Given an `OpaquePointer` to a `mongo_embedded_v1_status`, get the status's explanation.
-private func getStatusExplanation(_ status: OpaquePointer) -> String {
+private func getStatusExplanation(_ status: OpaquePointer?) -> String {
     return String(cString: mongo_embedded_v1_status_get_explanation(status))
 }
 
@@ -64,7 +64,7 @@ public class MongoMobile {
         let status = mongo_embedded_v1_status_create()
         var initParams = mongo_embedded_v1_init_params()
         initParams.log_callback = mongo_mobile_log_callback
-        initParams.log_flags = MONGO_EMBEDDED_V1_LOG_CALLBACK
+        initParams.log_flags = UInt64(MONGO_EMBEDDED_V1_LOG_CALLBACK.rawValue)
 
         guard let instance = mongo_embedded_v1_lib_init(&initParams, status) else {
             throw MongoMobileError.invalidInstance(message: getStatusExplanation(status))
@@ -80,13 +80,13 @@ public class MongoMobile {
         let status = mongo_embedded_v1_status_create()
         for (_, instance) in embeddedInstances {
             let result = mongo_embedded_v1_instance_destroy(instance, status)
-            if result == MONGO_EMBEDDED_V1_ERROR_EXCEPTION {
+            if result == MONGO_EMBEDDED_V1_ERROR_EXCEPTION.rawValue {
                 throw MongoMobileError.instanceDropError(message: getStatusExplanation(status))
             }
         }
 
         let result = mongo_embedded_v1_lib_fini(libraryInstance, status)
-        if result == MONGO_EMBEDDED_V1_ERROR_EXCEPTION {
+        if result == MONGO_EMBEDDED_V1_ERROR_EXCEPTION.rawValue {
             throw MongoMobileError.cleanupError(message: getStatusExplanation(status))
         }
 
