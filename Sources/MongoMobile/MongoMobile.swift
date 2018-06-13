@@ -1,4 +1,4 @@
-import libmongodbcapi
+import mongo_embedded
 
 /// Settings for constructing a `MongoClient`
 public struct MongoClientSettings {
