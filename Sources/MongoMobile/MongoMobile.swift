@@ -1,5 +1,7 @@
 import mongo_embedded
 
+let MONGO_EMBEDDED_V1_ERROR_EXCEPTION = 2;
+
 /// Settings for constructing a `MongoClient`
 public struct MongoClientSettings {
   /// the database path to use
@@ -13,8 +15,10 @@ public struct MongoClientSettings {
 
 public enum MongoMobileError: Error {
     case invalidClient()
-    case invalidInstance()
+    case invalidInstance(message: String)
     case invalidLibrary()
+    case instanceDropError(message: String)
+    case cleanupError(message: String)
 }
 
 private func mongo_mobile_log_callback(userDataPtr: UnsafeMutableRawPointer?,
@@ -35,7 +39,7 @@ public class MongoMobile {
   /**
    * Perform required operations to initialize the embedded server.
    */
-  public static func initialize() {
+  public static func initialize() throws {
     // NOTE: remove once MongoSwift is handling this
     mongoc_init()
 
@@ -43,19 +47,33 @@ public class MongoMobile {
     var initParams = mongo_embedded_v1_init_params()
     initParams.log_callback = mongo_mobile_log_callback
     initParams.log_flags = 4 // LIBMONGODB_CAPI_LOG_CALLBACK
-    libraryInstance = mongo_embedded_v1_lib_init(&initParams, status)
+
+    guard let instance = mongo_embedded_v1_lib_init(&initParams, status) else {
+        throw MongoMobileError.invalidInstance(message:
+                String(cString: mongo_embedded_v1_status_get_explanation(status)))
+    }
+
+    libraryInstance = instance
   }
 
   /**
    * Perform required operations to cleanup the embedded server.
    */
-  public static func close() {
+  public static func close() throws {
     let status = mongo_embedded_v1_status_create()
     for (_, instance) in embeddedInstances {
-        mongo_embedded_v1_instance_destroy(instance, status)
+        let result = mongo_embedded_v1_instance_destroy(instance, status)
+        if result == MONGO_EMBEDDED_V1_ERROR_EXCEPTION {
+            throw MongoMobileError.instanceDropError(message:
+                String(cString: mongo_embedded_v1_status_get_explanation(status)))
+        }
     }
 
-    mongo_embedded_v1_lib_fini(libraryInstance, status)
+    let result = mongo_embedded_v1_lib_fini(libraryInstance, status)
+    if result == MONGO_EMBEDDED_V1_ERROR_EXCEPTION {
+        throw MongoMobileError.cleanupError(message:
+            String(cString: mongo_embedded_v1_status_get_explanation(status)))
+    }
 
     // NOTE: remove once MongoSwift is handling this
     mongoc_cleanup()
@@ -89,7 +107,8 @@ public class MongoMobile {
         }
 
         guard let capiInstance = mongo_embedded_v1_instance_create(library, configurationString, status) else {
-            throw MongoMobileError.invalidInstance()
+            throw MongoMobileError.invalidInstance(message:
+                String(cString: mongo_embedded_v1_status_get_explanation(status)))
         }
 
         instance = capiInstance
