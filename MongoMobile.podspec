@@ -11,7 +11,6 @@ Pod::Spec.new do |spec|
   }
 
   spec.platform = :ios, "11.2"
-  spec.swift_version = "4"
   spec.requires_arc = true
   spec.source_files = ["Sources/MongoMobile/**/*.swift", "Sources/MongoSwift/**/*.swift"]
   spec.prepare_command = 'sh build.sh'
