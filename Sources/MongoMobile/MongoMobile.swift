@@ -13,7 +13,8 @@ public struct MongoClientSettings {
 
 public enum MongoMobileError: Error {
     case invalidClient()
-    case invalidDatabase()
+    case invalidInstance()
+    case invalidLibrary()
 }
 
 private func mongo_mobile_log_callback(userDataPtr: UnsafeMutableRawPointer?,
@@ -28,7 +29,7 @@ private func mongo_mobile_log_callback(userDataPtr: UnsafeMutableRawPointer?,
 }
 
 public class MongoMobile {
-  private static var libraryInstance: OpaquePointer
+  private static var libraryInstance: OpaquePointer?
   private static var embeddedInstances = [String: OpaquePointer]()
 
   /**
@@ -38,21 +39,23 @@ public class MongoMobile {
     // NOTE: remove once MongoSwift is handling this
     mongoc_init()
 
+    let status = mongo_embedded_v1_status_create()
     var initParams = mongo_embedded_v1_init_params()
     initParams.log_callback = mongo_mobile_log_callback
     initParams.log_flags = 4 // LIBMONGODB_CAPI_LOG_CALLBACK
-    libraryInstance = mongo_embedded_v1_lib_init(&initParams)
+    libraryInstance = mongo_embedded_v1_lib_init(&initParams, status)
   }
 
   /**
    * Perform required operations to cleanup the embedded server.
    */
   public static func close() {
+    let status = mongo_embedded_v1_status_create()
     for (_, instance) in embeddedInstances {
-        mongo_embedded_v1_instance_destroy(instance)
+        mongo_embedded_v1_instance_destroy(instance, status)
     }
 
-    mongo_embedded_v1_lib_fini(libraryInstance)
+    mongo_embedded_v1_lib_fini(libraryInstance, status)
 
     // NOTE: remove once MongoSwift is handling this
     mongoc_cleanup()
@@ -68,9 +71,10 @@ public class MongoMobile {
    * - Returns: a new `MongoClient`
    */
   public static func create(_ settings: MongoClientSettings) throws -> MongoClient {
-    var database: OpaquePointer
+    let status = mongo_embedded_v1_status_create()
+    var instance: OpaquePointer
     if let cachedInstance = embeddedInstances[settings.dbPath] {
-        database = cachedInstance
+        instance = cachedInstance
     } else {
         let configuration = [
             "storage": [
@@ -80,15 +84,19 @@ public class MongoMobile {
 
         let configurationData = try JSONSerialization.data(withJSONObject: configuration)
         let configurationString = String(data: configurationData, encoding: .utf8)
-        guard let capiInstance = mongo_embedded_v1_instance_create(libraryInstance, configurationString) else {
-            throw MongoMobileError.invalidDatabase()
+        guard let library = libraryInstance else {
+            throw MongoMobileError.invalidLibrary()
+        }
+
+        guard let capiInstance = mongo_embedded_v1_instance_create(library, configurationString, status) else {
+            throw MongoMobileError.invalidInstance()
         }
 
         instance = capiInstance
         embeddedInstances[settings.dbPath] = instance
     }
 
-    guard let capiClient = mongo_embedded_v1_mongoc_client_create(database) else {
+    guard let capiClient = mongo_embedded_v1_mongoc_client_create(instance) else {
         throw MongoMobileError.invalidClient()
     }
 
