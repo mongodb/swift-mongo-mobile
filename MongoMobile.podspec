@@ -36,6 +36,7 @@ Pod::Spec.new do |spec|
 
     'SWIFT_INCLUDE_PATHS' => [
       '"$(PODS_TARGET_SRCROOT)/MobileSDKs/include"',
+      '"$(PODS_TARGET_SRCROOT)/MobileSDKs/include/mongo/embedded-v1/"',
       '"$(PODS_TARGET_SRCROOT)/MobileSDKs/include/libbson-1.0"',
       '"$(PODS_TARGET_SRCROOT)/MobileSDKs/include/libmongoc-1.0"',
       '"$(PODS_TARGET_SRCROOT)/Sources/mongo_embedded"',
