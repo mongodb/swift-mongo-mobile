@@ -1,6 +1,5 @@
 import Foundation
 import mongo_embedded
-import MongoSwift
 
 /// Settings for constructing a `MongoClient`
 public struct MongoClientSettings {
