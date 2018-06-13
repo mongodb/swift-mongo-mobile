@@ -7,7 +7,7 @@ Pod::Spec.new do |spec|
   spec.author     = { "Matt Broadstone" => "mbroadst@mongodb.com" }
   spec.source     = {
     :git => "ssh://git@github.com/10gen/swift-mongo-mobile.git",
-    :branch => "abi-updates"
+    :branch => "master"
   }
 
   spec.platform = :ios, "11.2"
