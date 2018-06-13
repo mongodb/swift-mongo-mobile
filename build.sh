@@ -1,13 +1,36 @@
 #!/bin/bash
 
-# MobileSDK links
-MOBILE_SDK_IPHONEOS="https://s3.amazonaws.com/mciuploads/mongodb-mongo-master/embedded-sdk/embedded-sdk-iphoneos-10.2/9dbed1bc8108798bebc8ae7a0b56fa4858335146/mongodb_mongo_master_embedded_sdk_iphoneos_10.2_9dbed1bc8108798bebc8ae7a0b56fa4858335146_18_04_23_03_32_45.tgz"
-MOBILE_SDK_IPHONESIMULATOR="https://s3.amazonaws.com/mciuploads/mongodb-mongo-master/embedded-sdk/embedded-sdk-iphonesimulator-10.2/9dbed1bc8108798bebc8ae7a0b56fa4858335146/mongodb_mongo_master_embedded_sdk_iphonesimulator_10.2_9dbed1bc8108798bebc8ae7a0b56fa4858335146_18_04_23_03_32_45.tgz"
-
 # helper functions
+mobile_sdk_url() {
+  local variant=$1
+
+  case "$variant" in
+    iphoneos)
+      echo "https://s3.amazonaws.com/mciuploads/mongodb-mongo-master/embedded-sdk/embedded-sdk-iphoneos-10.2/0dd1fc7ddde2a489558f5328dce5125bddfb9e4d/mongodb_mongo_master_embedded_sdk_iphoneos_10.2_0dd1fc7ddde2a489558f5328dce5125bddfb9e4d_18_06_11_10_58_10.tgz"
+      ;;
+
+    iphonesimulator)
+      echo "https://s3.amazonaws.com/mciuploads/mongodb-mongo-master/embedded-sdk/embedded-sdk-iphonesimulator-10.2/0dd1fc7ddde2a489558f5328dce5125bddfb9e4d/mongodb_mongo_master_embedded_sdk_iphonesimulator_10.2_0dd1fc7ddde2a489558f5328dce5125bddfb9e4d_18_06_11_10_58_10.tgz"
+      ;;
+
+    appletvos)
+      echo "https://s3.amazonaws.com/mciuploads/mongodb-mongo-master/embedded-sdk/embedded-sdk-appletvos-10.2/0dd1fc7ddde2a489558f5328dce5125bddfb9e4d/mongodb_mongo_master_embedded_sdk_appletvos_10.2_0dd1fc7ddde2a489558f5328dce5125bddfb9e4d_18_06_11_10_58_10.tgz"
+      ;;
+
+    appletvsimulator)
+      echo "https://s3.amazonaws.com/mciuploads/mongodb-mongo-master/embedded-sdk/embedded-sdk-appletvsimulator-10.2/0dd1fc7ddde2a489558f5328dce5125bddfb9e4d/mongodb_mongo_master_embedded_sdk_appletvsimulator_10.2_0dd1fc7ddde2a489558f5328dce5125bddfb9e4d_18_06_11_10_58_10.tgz"
+      ;;
+
+    macosx)
+      echo "https://s3.amazonaws.com/mciuploads/mongodb-mongo-master/embedded-sdk/embedded-sdk-macosx-10.10/0dd1fc7ddde2a489558f5328dce5125bddfb9e4d/mongodb_mongo_master_embedded_sdk_macosx_10.10_0dd1fc7ddde2a489558f5328dce5125bddfb9e4d_18_06_11_10_58_10.tgz"
+      ;;
+  esac
+}
+
 download_mobile_sdk() {
   local target=$1 url=$2
 
+  echo $url
   curl $url > mobile-sdks.tgz
   mkdir $target
   tar -xzf mobile-sdks.tgz -C $target --strip-components 2
@@ -21,6 +44,38 @@ fix_mongoc_symlinks() {
   cp $prefix/lib/libbson-1.0.0.dylib $prefix/lib/libbson-1.0.dylib
   rm $prefix/lib/libmongoc-1.0.dylib
   cp $prefix/lib/libmongoc-1.0.0.dylib $prefix/lib/libmongoc-1.0.dylib
+}
+
+download_and_combine() {
+  local variant=$1
+  local variant_os=${variant}os
+  local variant_os_tmp=${variant_os}-tmp
+  local variant_simulator=${variant}simulator
+  local variant_simulator_tmp=${variant_simulator}-tmp
+
+  if [ ! -d $variant_os ]; then
+    download_mobile_sdk $variant_os_tmp $(mobile_sdk_url ${variant_os})
+    fix_mongoc_symlinks $variant_os_tmp
+
+    download_mobile_sdk $variant_simulator_tmp $(mobile_sdk_url ${variant_simulator})
+    fix_mongoc_symlinks $variant_simulator_tmp
+
+    # create shared include path
+    cp -r $variant_os_tmp/include .
+
+    # create combined SDK library paths
+    mkdir -p ${variant_os}/lib
+
+    echo "merging architectures into universal dylibs..."
+    for lib in $variant_os_tmp/lib/*.dylib; do
+      base_lib=$(basename "$lib")
+      lipo $variant_os_tmp/lib/${base_lib} $variant_simulator_tmp/lib/${base_lib} -output ${variant_os}/lib/${base_lib} -create
+    done
+
+    # cleanup
+    rm -rf $variant_os_tmp
+    rm -rf $variant_simulator_tmp
+  fi
 }
 
 # download module definitions for libmongoc/libbson
@@ -40,27 +95,5 @@ fi
 
 # download mobile SDKs
 mkdir -p MobileSDKs && cd MobileSDKs
-
-if [ ! -d iphoneos ]; then
-  download_mobile_sdk "iphoneos-tmp" $MOBILE_SDK_IPHONEOS
-  fix_mongoc_symlinks "iphoneos-tmp"
-
-  download_mobile_sdk "iphonesimulator-tmp" $MOBILE_SDK_IPHONESIMULATOR
-  fix_mongoc_symlinks "iphonesimulator-tmp"
-
-  # create shared include path
-  cp -r iphoneos-tmp/include .
-
-  # create combined SDK library paths
-  mkdir -p iphoneos/lib
-
-  echo "merging architectures into universal dylibs..."
-  for lib in iphoneos-tmp/lib/*.dylib; do
-    base_lib=$(basename "$lib")
-    lipo iphoneos-tmp/lib/${base_lib} iphonesimulator-tmp/lib/${base_lib} -output iphoneos/lib/${base_lib} -create
-  done
-
-  # cleanup
-  rm -rf iphoneos-tmp
-  rm -rf iphonesimulator-tmp
-fi
+download_and_combine "iphone"
+download_and_combine "appletv"
