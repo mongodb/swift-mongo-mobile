@@ -2,7 +2,7 @@ Pod::Spec.new do |spec|
   spec.name       = "MongoMobile"
   spec.version    = "0.0.1"
   spec.summary    = "Some description"
-  spec.homepage   = "https://github.com/10gen/swift-mongo-mobile"
+  spec.homepage   = "https://github.com/mongodb/swift-mongo-mobile"
   spec.license    = 'AGPL 3.0'
   spec.author     = { "Matt Broadstone" => "mbroadst@mongodb.com" }
   spec.source     = {
