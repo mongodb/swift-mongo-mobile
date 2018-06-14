@@ -41,7 +41,7 @@ private struct WeakRef<T> where T: AnyObject {
 public class MongoMobile {
     private static var libraryInstance: OpaquePointer?
     private static var embeddedInstances = [String: OpaquePointer]()
-    private static var embeddedClients = [WeakRef<MongoClient>]()
+    private static var embeddedClients = [(WeakRef<MongoClient>, OpaquePointer)]()
     
     /**
      * Perform required operations to initialize the embedded server.
@@ -67,8 +67,8 @@ public class MongoMobile {
      * Perform required operations to cleanup the embedded server.
      */
     public static func close() throws {
-        self.embeddedClients.forEach { (ref) in
-            guard let ptr = ref.reference?._client else {
+        self.embeddedClients.forEach { (ref, ptr) in
+            guard ref.reference != nil else {
                 return
             }
             
@@ -136,7 +136,7 @@ public class MongoMobile {
         }
         
         let client = MongoClient(fromPointer: capiClient)
-        self.embeddedClients.append(WeakRef(client))
+        self.embeddedClients.append((WeakRef(client), capiClient))
         return client
     }
 }
