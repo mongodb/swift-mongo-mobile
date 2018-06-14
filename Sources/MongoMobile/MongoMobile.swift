@@ -5,7 +5,7 @@ import mongo_embedded
 public struct MongoClientSettings {
     /// the database path to use
     public let dbPath: String
-    
+
     /// public member-wise initializer
     public init(dbPath: String) {
         self.dbPath = dbPath
@@ -99,7 +99,7 @@ public class MongoMobile {
         }
 
         let result = mongo_embedded_v1_lib_fini(libraryInstance, status)
-        if result == 0 {
+        if result != 0 {
             throw MongoMobileError.cleanupError(message: getStatusExplanation(status))
         }
 
