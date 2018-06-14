@@ -61,7 +61,7 @@ private func getStatusExplanation(_ status: OpaquePointer?) -> String {
 public class MongoMobile {
     private static var libraryInstance: OpaquePointer?
     private static var embeddedInstances = [String: OpaquePointer]()
-    private static var embeddedClients = [(WeakRef<MongoClient>, OpaquePointer)]()
+    private static var embeddedClients = [WeakRef<MongoClient>]()
 
     /**
      * Perform required operations to initialize the embedded server.
@@ -85,9 +85,8 @@ public class MongoMobile {
      * Perform required operations to clean up the embedded server.
      */
     public static func close() throws {
-        self.embeddedClients.forEach { (ref, ptr) in
-            guard ref.reference != nil else { return }
-            mongoc_client_destroy(ptr)
+        self.embeddedClients.forEach { ref in
+            ref.reference?.close()
         }
 
         let status = mongo_embedded_v1_status_create()
@@ -147,7 +146,7 @@ public class MongoMobile {
         }
 
         let client = MongoClient(fromPointer: capiClient)
-        self.embeddedClients.append((WeakRef(client), capiClient))
+        self.embeddedClients.append(WeakRef(client))
         return client
     }
 }
