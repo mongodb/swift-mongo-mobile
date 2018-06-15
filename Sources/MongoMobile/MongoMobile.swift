@@ -46,11 +46,11 @@ public struct MongoEmbeddedV1Error: LocalizedError {
     public var errorDescription: String? {
         return "\(error): \(statusMessage)"
     }
-    init(_ error: mongo_embedded_v1_error,
+    init(_ error: Int32,
          statusMessage: String) {
         self.statusMessage = statusMessage
         self.error = MongoEmbeddedV1ErrorCode(
-            rawValue: error.rawValue
+            rawValue: error
             ) ?? .errorUnknown
     }
 }
