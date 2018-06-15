@@ -5,31 +5,53 @@ import mongo_embedded
 public struct MongoClientSettings {
     /// the database path to use
     public let dbPath: String
-
+    
     /// public member-wise initializer
     public init(dbPath: String) {
         self.dbPath = dbPath
     }
 }
 
-/// Errors associated with `MongoMobile`.
 public enum MongoMobileError: LocalizedError {
     case invalidClient()
     case invalidInstance(message: String)
     case invalidLibrary()
     case instanceDropError(message: String)
     case cleanupError(message: String)
+}
 
-    /// a string to be printed out when the error is thrown
+/// Replica enum of mongo_embedded_v1_error typedef
+private enum MongoEmbeddedV1ErrorCode: Int32 {
+    case reportingError = -2
+    case errorUnknown
+    case success
+    case cannotAllocateMemory
+    case exception
+    case libraryAlreadyInitialized
+    case libraryNotInitialized
+    case invalidLibraryHandle
+    case dbInitializationFailed
+    case invalidDbHandle
+    case hasDbHandlesOpen
+    case dbMaxOpen
+    case dbClientsOpen
+    case invalidClientHandle
+    case reentrancyNotAllowed
+}
+
+public struct MongoEmbeddedV1Error: LocalizedError {
+    private let statusMessage: String
+    private let error: MongoEmbeddedV1ErrorCode
+    
     public var errorDescription: String? {
-        switch self {
-        case let .invalidInstance(message),
-            let .instanceDropError(message),
-            let .cleanupError(message):
-            return message
-        default:
-            return nil
-        }
+        return "\(error): \(statusMessage)"
+    }
+    init(_ error: mongo_embedded_v1_error,
+         statusMessage: String) {
+        self.statusMessage = statusMessage
+        self.error = MongoEmbeddedV1ErrorCode(
+            rawValue: error.rawValue
+            ) ?? .errorUnknown
     }
 }
 
@@ -60,27 +82,29 @@ private func getStatusExplanation(_ status: OpaquePointer?) -> String {
 /// A class containing static methods for working with MongoMobile.
 public class MongoMobile {
     private static var libraryInstance: OpaquePointer?
+    /// Cache embedded instances for cleanup
     private static var embeddedInstances = [String: OpaquePointer]()
+    /// Cache embedded clients for cleanup
     private static var embeddedClients = [WeakRef<MongoClient>]()
-
+    
     /**
      * Perform required operations to initialize the embedded server.
      */
     public static func initialize() throws {
         MongoSwift.initialize()
-
+        
         let status = mongo_embedded_v1_status_create()
         var initParams = mongo_embedded_v1_init_params()
         initParams.log_callback = mongo_mobile_log_callback
         initParams.log_flags = UInt64(MONGO_EMBEDDED_V1_LOG_CALLBACK.rawValue)
-
+        
         guard let instance = mongo_embedded_v1_lib_init(&initParams, status) else {
             throw MongoMobileError.invalidInstance(message: getStatusExplanation(status))
         }
-
+        
         libraryInstance = instance
     }
-
+    
     /**
      * Perform required operations to clean up the embedded server.
      */
@@ -88,23 +112,25 @@ public class MongoMobile {
         self.embeddedClients.forEach { ref in
             ref.reference?.close()
         }
-
+        
         let status = mongo_embedded_v1_status_create()
         for (_, instance) in embeddedInstances {
             let result = mongo_embedded_v1_instance_destroy(instance, status)
             if result != 0 {
-                throw MongoMobileError.instanceDropError(message: getStatusExplanation(status))
+                throw MongoEmbeddedV1Error.init(result,
+                                                statusMessage: getStatusExplanation(status))
             }
         }
-
+        
         let result = mongo_embedded_v1_lib_fini(libraryInstance, status)
         if result != 0 {
-            throw MongoMobileError.cleanupError(message: getStatusExplanation(status))
+            throw MongoEmbeddedV1Error.init(result,
+                                            statusMessage: getStatusExplanation(status))
         }
-
+        
         MongoSwift.cleanup()
     }
-
+    
     /**
      * Create a new `MongoClient` for the database indicated by `dbPath` in
      * the passed in settings.
@@ -128,23 +154,23 @@ public class MongoMobile {
             ]
             let configurationData = try JSONSerialization.data(withJSONObject: configuration)
             let configurationString = String(data: configurationData, encoding: .utf8)
-
+            
             guard let library = libraryInstance else {
                 throw MongoMobileError.invalidLibrary()
             }
-
+            
             guard let capiInstance = mongo_embedded_v1_instance_create(library, configurationString, status) else {
                 throw MongoMobileError.invalidInstance(message: getStatusExplanation(status))
             }
-
+            
             instance = capiInstance
             embeddedInstances[settings.dbPath] = instance
         }
-
+        
         guard let capiClient = mongo_embedded_v1_mongoc_client_create(instance) else {
             throw MongoMobileError.invalidClient()
         }
-
+        
         let client = MongoClient(fromPointer: capiClient)
         self.embeddedClients.append(WeakRef(client))
         return client
