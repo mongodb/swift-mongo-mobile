@@ -18,40 +18,31 @@ public enum MongoMobileError: LocalizedError {
     case invalidLibrary()
     case instanceDropError(message: String)
     case cleanupError(message: String)
-}
-
-/// Replica enum of mongo_embedded_v1_error typedef
-private enum MongoEmbeddedV1ErrorCode: Int32 {
-    case reportingError = -2
-    case errorUnknown
-    case success
-    case cannotAllocateMemory
-    case exception
-    case libraryAlreadyInitialized
-    case libraryNotInitialized
-    case invalidLibraryHandle
-    case dbInitializationFailed
-    case invalidDbHandle
-    case hasDbHandlesOpen
-    case dbMaxOpen
-    case dbClientsOpen
-    case invalidClientHandle
-    case reentrancyNotAllowed
+    
+    public var errorDescription: String? {
+        switch self {
+            case let .invalidInstance(message),
+                 let .instanceDropError(message),
+                 let .cleanupError(message):
+                return message
+            default:
+                return nil
+        }
+    }
 }
 
 public struct MongoEmbeddedV1Error: LocalizedError {
     private let statusMessage: String
-    private let error: MongoEmbeddedV1ErrorCode
+    private let error: mongo_embedded_v1_error
     
     public var errorDescription: String? {
         return "\(error): \(statusMessage)"
     }
-    init(_ error: Int32,
+    
+    init(_ error: mongo_embedded_v1_error,
          statusMessage: String) {
         self.statusMessage = statusMessage
-        self.error = MongoEmbeddedV1ErrorCode(
-            rawValue: error
-            ) ?? .errorUnknown
+        self.error = error
     }
 }
 
@@ -115,17 +106,17 @@ public class MongoMobile {
         
         let status = mongo_embedded_v1_status_create()
         for (_, instance) in embeddedInstances {
-            let result = mongo_embedded_v1_instance_destroy(instance, status)
-            if result != 0 {
-                throw MongoEmbeddedV1Error.init(result,
-                                                statusMessage: getStatusExplanation(status))
+            let result = mongo_embedded_v1_error(mongo_embedded_v1_instance_destroy(instance, status))
+            if result != MONGO_EMBEDDED_V1_SUCCESS {
+                throw MongoEmbeddedV1Error(result,
+                                           statusMessage: getStatusExplanation(status))
             }
         }
         
-        let result = mongo_embedded_v1_lib_fini(libraryInstance, status)
-        if result != 0 {
-            throw MongoEmbeddedV1Error.init(result,
-                                            statusMessage: getStatusExplanation(status))
+        let result = mongo_embedded_v1_error(mongo_embedded_v1_lib_fini(libraryInstance, status))
+        if result != MONGO_EMBEDDED_V1_SUCCESS {
+            throw MongoEmbeddedV1Error(result,
+                                       statusMessage: getStatusExplanation(status))
         }
         
         MongoSwift.cleanup()
