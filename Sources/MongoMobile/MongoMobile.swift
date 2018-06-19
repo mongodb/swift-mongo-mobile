@@ -5,7 +5,7 @@ import mongo_embedded
 public struct MongoClientSettings {
     /// the database path to use
     public let dbPath: String
-    
+
     /// public member-wise initializer
     public init(dbPath: String) {
         self.dbPath = dbPath
@@ -19,14 +19,15 @@ public enum MongoMobileError: LocalizedError {
     case instanceDropError(message: String)
     case cleanupError(message: String)
     
+    /// a string to be printed out when the error is thrown
     public var errorDescription: String? {
         switch self {
-            case let .invalidInstance(message),
-                 let .instanceDropError(message),
-                 let .cleanupError(message):
-                return message
-            default:
-                return nil
+        case let .invalidInstance(message),
+            let .instanceDropError(message),
+            let .cleanupError(message):
+            return message
+        default:
+            return nil
         }
     }
 }
@@ -77,25 +78,25 @@ public class MongoMobile {
     private static var embeddedInstances = [String: OpaquePointer]()
     /// Cache embedded clients for cleanup
     private static var embeddedClients = [WeakRef<MongoClient>]()
-    
+
     /**
      * Perform required operations to initialize the embedded server.
      */
     public static func initialize() throws {
         MongoSwift.initialize()
-        
+
         let status = mongo_embedded_v1_status_create()
         var initParams = mongo_embedded_v1_init_params()
         initParams.log_callback = mongo_mobile_log_callback
         initParams.log_flags = UInt64(MONGO_EMBEDDED_V1_LOG_CALLBACK.rawValue)
-        
+
         guard let instance = mongo_embedded_v1_lib_init(&initParams, status) else {
             throw MongoMobileError.invalidInstance(message: getStatusExplanation(status))
         }
-        
+
         libraryInstance = instance
     }
-    
+
     /**
      * Perform required operations to clean up the embedded server.
      */
@@ -103,7 +104,7 @@ public class MongoMobile {
         self.embeddedClients.forEach { ref in
             ref.reference?.close()
         }
-        
+
         let status = mongo_embedded_v1_status_create()
         for (_, instance) in embeddedInstances {
             let result = mongo_embedded_v1_error(mongo_embedded_v1_instance_destroy(instance, status))
@@ -112,13 +113,13 @@ public class MongoMobile {
                                            statusMessage: getStatusExplanation(status))
             }
         }
-        
+
         let result = mongo_embedded_v1_error(mongo_embedded_v1_lib_fini(libraryInstance, status))
         if result != MONGO_EMBEDDED_V1_SUCCESS {
             throw MongoEmbeddedV1Error(result,
                                        statusMessage: getStatusExplanation(status))
         }
-        
+
         MongoSwift.cleanup()
     }
     
@@ -157,11 +158,11 @@ public class MongoMobile {
             instance = capiInstance
             embeddedInstances[settings.dbPath] = instance
         }
-        
+
         guard let capiClient = mongo_embedded_v1_mongoc_client_create(instance) else {
             throw MongoMobileError.invalidClient()
         }
-        
+
         let client = MongoClient(fromPointer: capiClient)
         self.embeddedClients.append(WeakRef(client))
         return client
