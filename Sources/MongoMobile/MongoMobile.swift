@@ -122,7 +122,7 @@ public class MongoMobile {
 
         MongoSwift.cleanup()
     }
-    
+
     /**
      * Create a new `MongoClient` for the database indicated by `dbPath` in
      * the passed in settings.
