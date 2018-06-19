@@ -18,7 +18,7 @@ public enum MongoMobileError: LocalizedError {
     case invalidLibrary()
     case instanceDropError(message: String)
     case cleanupError(message: String)
-    
+
     /// a string to be printed out when the error is thrown
     public var errorDescription: String? {
         switch self {
@@ -146,15 +146,15 @@ public class MongoMobile {
             ]
             let configurationData = try JSONSerialization.data(withJSONObject: configuration)
             let configurationString = String(data: configurationData, encoding: .utf8)
-            
+
             guard let library = libraryInstance else {
                 throw MongoMobileError.invalidLibrary()
             }
-            
+
             guard let capiInstance = mongo_embedded_v1_instance_create(library, configurationString, status) else {
                 throw MongoMobileError.invalidInstance(message: getStatusExplanation(status))
             }
-            
+
             instance = capiInstance
             embeddedInstances[settings.dbPath] = instance
         }
