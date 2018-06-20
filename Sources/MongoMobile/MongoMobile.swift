@@ -12,7 +12,6 @@ public struct MongoClientSettings {
     }
 }
 
-/// Errors associated with `MongoMobile`.
 public enum MongoMobileError: LocalizedError {
     case invalidClient()
     case invalidInstance(message: String)
@@ -33,6 +32,21 @@ public enum MongoMobileError: LocalizedError {
     }
 }
 
+public struct MongoEmbeddedV1Error: LocalizedError {
+    private let statusMessage: String
+    private let error: mongo_embedded_v1_error
+    
+    public var errorDescription: String? {
+        return "\(error): \(statusMessage)"
+    }
+    
+    init(_ error: mongo_embedded_v1_error,
+         statusMessage: String) {
+        self.statusMessage = statusMessage
+        self.error = error
+    }
+}
+
 /// Prints a log statement in the format `[component] message`.
 private func mongo_mobile_log_callback(userDataPtr: UnsafeMutableRawPointer?,
                                        messagePtr: UnsafePointer<Int8>?,
@@ -44,6 +58,14 @@ private func mongo_mobile_log_callback(userDataPtr: UnsafeMutableRawPointer?,
     print("[\(component)] \(message)")
 }
 
+private struct WeakRef<T> where T: AnyObject {
+    weak var reference: T?
+    
+    init(_ reference: T) {
+        self.reference = reference
+    }
+}
+
 /// Given an `OpaquePointer` to a `mongo_embedded_v1_status`, get the status's explanation.
 private func getStatusExplanation(_ status: OpaquePointer?) -> String {
     return String(cString: mongo_embedded_v1_status_get_explanation(status))
@@ -52,7 +74,10 @@ private func getStatusExplanation(_ status: OpaquePointer?) -> String {
 /// A class containing static methods for working with MongoMobile.
 public class MongoMobile {
     private static var libraryInstance: OpaquePointer?
+    /// Cache embedded instances for cleanup
     private static var embeddedInstances = [String: OpaquePointer]()
+    /// Cache embedded clients for cleanup
+    private static var embeddedClients = [WeakRef<MongoClient>]()
 
     /**
      * Perform required operations to initialize the embedded server.
@@ -76,17 +101,23 @@ public class MongoMobile {
      * Perform required operations to clean up the embedded server.
      */
     public static func close() throws {
+        self.embeddedClients.forEach { ref in
+            ref.reference?.close()
+        }
+
         let status = mongo_embedded_v1_status_create()
         for (_, instance) in embeddedInstances {
-            let result = mongo_embedded_v1_instance_destroy(instance, status)
-            if result == MONGO_EMBEDDED_V1_ERROR_EXCEPTION.rawValue {
-                throw MongoMobileError.instanceDropError(message: getStatusExplanation(status))
+            let result = mongo_embedded_v1_error(mongo_embedded_v1_instance_destroy(instance, status))
+            if result != MONGO_EMBEDDED_V1_SUCCESS {
+                throw MongoEmbeddedV1Error(result,
+                                           statusMessage: getStatusExplanation(status))
             }
         }
 
-        let result = mongo_embedded_v1_lib_fini(libraryInstance, status)
-        if result == MONGO_EMBEDDED_V1_ERROR_EXCEPTION.rawValue {
-            throw MongoMobileError.cleanupError(message: getStatusExplanation(status))
+        let result = mongo_embedded_v1_error(mongo_embedded_v1_lib_fini(libraryInstance, status))
+        if result != MONGO_EMBEDDED_V1_SUCCESS {
+            throw MongoEmbeddedV1Error(result,
+                                       statusMessage: getStatusExplanation(status))
         }
 
         MongoSwift.cleanup()
@@ -132,6 +163,8 @@ public class MongoMobile {
             throw MongoMobileError.invalidClient()
         }
 
-        return MongoClient(fromPointer: capiClient)
+        let client = MongoClient(fromPointer: capiClient)
+        self.embeddedClients.append(WeakRef(client))
+        return client
     }
 }
