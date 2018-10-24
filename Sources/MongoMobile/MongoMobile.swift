@@ -35,11 +35,11 @@ public enum MongoMobileError: LocalizedError {
 public struct MongoEmbeddedV1Error: LocalizedError {
     private let statusMessage: String
     private let error: mongo_embedded_v1_error
-    
+
     public var errorDescription: String? {
         return "\(error): \(statusMessage)"
     }
-    
+
     init(_ error: mongo_embedded_v1_error,
          statusMessage: String) {
         self.statusMessage = statusMessage
@@ -60,7 +60,7 @@ private func mongo_mobile_log_callback(userDataPtr: UnsafeMutableRawPointer?,
 
 private struct WeakRef<T> where T: AnyObject {
     weak var reference: T?
-    
+
     init(_ reference: T) {
         self.reference = reference
     }
