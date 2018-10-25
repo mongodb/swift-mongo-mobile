@@ -1,13 +1,13 @@
 Pod::Spec.new do |spec|
   spec.name       = "MongoMobile"
-  spec.version    = "0.0.1"
+  spec.version    = "0.0.2"
   spec.summary    = "Some description"
   spec.homepage   = "https://github.com/mongodb/swift-mongo-mobile"
   spec.license    = 'AGPL 3.0'
   spec.author     = { "Matt Broadstone" => "mbroadst@mongodb.com" }
   spec.source     = {
     :git => "ssh://git@github.com/10gen/swift-mongo-mobile.git",
-    :branch => "master"
+    :branch => "SWIFT-129/use-mobile-sdk-for-cocoapods"
   }
 
   spec.ios.deployment_target = "11.0"
@@ -17,7 +17,7 @@ Pod::Spec.new do |spec|
   spec.requires_arc = true
   spec.source_files = ["Sources/MongoMobile/**/*.swift"]
 
-  spec.dependency 'MongoSwift' '~> 0.0.4'
-  spec.dependency 'mongoc_embedded', '~> 4.0.3-79-g782f99a'
-  spec.dependency 'mongo_embedded', '~> 4.0.3-79-g782f99a'
+  spec.dependency 'MongoSwift', '~> 0.0.5'
+  spec.dependency 'mongoc_embedded', '~> 4.0.3-92-g8468282'
+  spec.dependency 'mongo_embedded', '~> 4.0.3-92-g8468282'
 end

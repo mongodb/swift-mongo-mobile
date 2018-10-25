@@ -1,5 +1,7 @@
 import Foundation
+import MongoSwift
 import mongo_embedded
+import mongoc_embedded
 
 /// Settings for constructing a `MongoClient`
 public struct MongoClientSettings {
@@ -159,7 +161,7 @@ public class MongoMobile {
             embeddedInstances[settings.dbPath] = instance
         }
 
-        guard let capiClient = mongo_embedded_v1_mongoc_client_create(instance) else {
+        guard let capiClient = mongoc_embedded_v1_client_create(instance) else {
             throw MongoMobileError.invalidClient()
         }
 
