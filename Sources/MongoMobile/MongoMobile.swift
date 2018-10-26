@@ -1,5 +1,7 @@
 import Foundation
+import MongoSwift
 import mongo_embedded
+import mongoc_embedded
 
 /// Settings for constructing a `MongoClient`
 public struct MongoClientSettings {
@@ -35,11 +37,11 @@ public enum MongoMobileError: LocalizedError {
 public struct MongoEmbeddedV1Error: LocalizedError {
     private let statusMessage: String
     private let error: mongo_embedded_v1_error
-    
+
     public var errorDescription: String? {
         return "\(error): \(statusMessage)"
     }
-    
+
     init(_ error: mongo_embedded_v1_error,
          statusMessage: String) {
         self.statusMessage = statusMessage
@@ -60,7 +62,7 @@ private func mongo_mobile_log_callback(userDataPtr: UnsafeMutableRawPointer?,
 
 private struct WeakRef<T> where T: AnyObject {
     weak var reference: T?
-    
+
     init(_ reference: T) {
         self.reference = reference
     }
@@ -159,7 +161,7 @@ public class MongoMobile {
             embeddedInstances[settings.dbPath] = instance
         }
 
-        guard let capiClient = mongo_embedded_v1_mongoc_client_create(instance) else {
+        guard let capiClient = mongoc_embedded_v1_client_create(instance) else {
             throw MongoMobileError.invalidClient()
         }
 
