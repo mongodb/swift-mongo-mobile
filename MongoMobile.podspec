@@ -1,6 +1,6 @@
 Pod::Spec.new do |spec|
   spec.name       = "MongoMobile"
-  spec.version    = "0.0.3"
+  spec.version    = "0.0.4"
   spec.summary    = "An embedded version of MongoDB for mobile"
   spec.homepage   = "https://github.com/mongodb/swift-mongo-mobile"
   spec.license    = 'AGPL 3.0'
@@ -17,7 +17,7 @@ Pod::Spec.new do |spec|
   spec.requires_arc = true
   spec.source_files = ["Sources/MongoMobile/**/*.swift"]
 
-  spec.dependency 'MongoSwift', '~> 0.0.5'
-  spec.dependency 'mongoc_embedded', '~> 4.0.3-92-g8468282'
-  spec.dependency 'mongo_embedded', '~> 4.0.3-92-g8468282'
+  spec.dependency 'MongoSwift', '~> 0.0.6'
+  spec.dependency 'mongoc_embedded', '~> 4.0.3-107-g0b0aac7'
+  spec.dependency 'mongo_embedded', '~> 4.0.3-107-g0b0aac7'
 end
