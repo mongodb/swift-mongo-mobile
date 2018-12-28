@@ -6,6 +6,7 @@ let package = Package(
         .library(name: "MongoMobile", targets: ["MongoMobile"])
     ],
     targets: [
-        .target(name: "MongoMobile")
+        .target(name: "MongoMobile"),
+	.testTarget(name: "MongoMobileTests", dependencies: ["MongoMobile"])
     ]
 )

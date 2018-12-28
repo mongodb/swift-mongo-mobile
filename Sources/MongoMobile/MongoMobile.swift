@@ -75,25 +75,63 @@ private func getStatusExplanation(_ status: OpaquePointer?) -> String {
 
 /// A class containing static methods for working with MongoMobile.
 public class MongoMobile {
-    private static var libraryInstance: OpaquePointer?
+    public static let shared = MongoMobile()
+
+    private var libraryInstance: OpaquePointer?
     /// Cache embedded instances for cleanup
-    private static var embeddedInstances = [String: OpaquePointer]()
+    private var embeddedInstances = [String: OpaquePointer]()
     /// Cache embedded clients for cleanup
-    private static var embeddedClients = [WeakRef<MongoClient>]()
+    private var embeddedClients = [WeakRef<MongoClient>]()
+
+    private init() {
+        #if os(Linux)
+        let observer = CFRunLoopObserverCreateWithHandler(
+            nil, CFRunLoopActivity.exit.rawValue, true, 0, { (observer, activity) in
+            try? MongoMobile.shared.destroy()
+            MongoSwift.cleanup()
+        })
+        CFRunLoopAddObserver(CFRunLoopGetMain(), observer, CFRunLoopMode.defaultMode)
+        #else
+        #if swift(>=4.2)
+        // observe when application will terminate
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(cleanup),
+            name: UIApplication.willTerminateNotification,
+            object: nil
+        )
+        #else
+        // observe when application will terminate
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(cleanup),
+            name: NSNotification.Name.UIApplicationWillTerminate,
+            object: nil
+        )
+        #endif
+        #endif
+        MongoSwift.initialize()
+        reinitialize()
+    }
+
+    #if !os(Linux)
+    @objc internal func cleanup() {
+        try? MongoMobile.shared.destroy()
+        MongoSwift.cleanup()
+    }
+    #endif
 
     /**
      * Perform required operations to initialize the embedded server.
      */
-    public static func initialize() throws {
-        MongoSwift.initialize()
-
+    public func reinitialize() {
         let status = mongo_embedded_v1_status_create()
         var initParams = mongo_embedded_v1_init_params()
         initParams.log_callback = mongo_mobile_log_callback
         initParams.log_flags = UInt64(MONGO_EMBEDDED_V1_LOG_CALLBACK.rawValue)
 
         guard let instance = mongo_embedded_v1_lib_init(&initParams, status) else {
-            throw MongoMobileError.invalidInstance(message: getStatusExplanation(status))
+            fatalError(getStatusExplanation(status))
         }
 
         libraryInstance = instance
@@ -102,7 +140,7 @@ public class MongoMobile {
     /**
      * Perform required operations to clean up the embedded server.
      */
-    public static func close() throws {
+    public func destroy() throws {
         self.embeddedClients.forEach { ref in
             ref.reference?.close()
         }
@@ -122,7 +160,8 @@ public class MongoMobile {
                                        statusMessage: getStatusExplanation(status))
         }
 
-        MongoSwift.cleanup()
+        self.embeddedClients.removeAll()
+        self.embeddedInstances.removeAll()
     }
 
     /**
@@ -134,7 +173,7 @@ public class MongoMobile {
      *
      * - Returns: a new `MongoClient`
      */
-    public static func create(_ settings: MongoClientSettings) throws -> MongoClient {
+    public func create(_ settings: MongoClientSettings) throws -> MongoClient {
         let status = mongo_embedded_v1_status_create()
         var instance: OpaquePointer?
         if let cachedInstance = embeddedInstances[settings.dbPath] {
