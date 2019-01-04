@@ -75,8 +75,10 @@ private func getStatusExplanation(_ status: OpaquePointer?) -> String {
 
 /// A class containing static methods for working with MongoMobile.
 public class MongoMobile {
+    /// Shared singleton
     public static let shared = MongoMobile()
 
+    /// Single embedded instance
     private var libraryInstance: OpaquePointer?
     /// Cache embedded instances for cleanup
     private var embeddedInstances = [String: OpaquePointer]()
@@ -115,6 +117,7 @@ public class MongoMobile {
     }
 
     #if !os(Linux)
+    /// Cleanup the library. Finalize.
     @objc internal func cleanup() {
         try? MongoMobile.shared.destroy()
         MongoSwift.cleanup()
@@ -122,7 +125,8 @@ public class MongoMobile {
     #endif
 
     /**
-     * Perform required operations to initialize the embedded server.
+     Perform required operations to reinitialize the embedded server.
+     This will reinitialize the library so that other dbPaths can be used.
      */
     public func reinitialize() {
         let status = mongo_embedded_v1_status_create()
@@ -138,7 +142,7 @@ public class MongoMobile {
     }
 
     /**
-     * Perform required operations to clean up the embedded server.
+      Perform required operations to clean up the embedded library instance.
      */
     public func destroy() throws {
         self.embeddedClients.forEach { ref in
@@ -167,7 +171,7 @@ public class MongoMobile {
     /**
      * Create a new `MongoClient` for the database indicated by `dbPath` in
      * the passed in settings.
-     *
+     * NOTE: Only one dbPath can be used at a time.
      * - Parameters:
      *   - settings: required settings for client creation
      *
