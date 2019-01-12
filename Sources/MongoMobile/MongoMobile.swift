@@ -103,19 +103,13 @@ public class MongoMobile {
      * Perform required operations to clean up the embedded server.
      */
     public static func close() throws {
-        self.embeddedClients.forEach { ref in
-            ref.reference?.close()
-        }
+        self.embeddedClients.forEach { ref in ref.reference?.close() }
+        embeddedClients.removeAll()
+
+        for (_, instance) in embeddedInstances { try destroyInstance(instance) }
+        embeddedInstances.removeAll()
 
         let status = mongo_embedded_v1_status_create()
-        for (_, instance) in embeddedInstances {
-            let result = mongo_embedded_v1_error(mongo_embedded_v1_instance_destroy(instance, status))
-            if result != MONGO_EMBEDDED_V1_SUCCESS {
-                throw MongoEmbeddedV1Error(result,
-                                           statusMessage: getStatusExplanation(status))
-            }
-        }
-
         let result = mongo_embedded_v1_error(mongo_embedded_v1_lib_fini(libraryInstance, status))
         if result != MONGO_EMBEDDED_V1_SUCCESS {
             throw MongoEmbeddedV1Error(result,
@@ -140,6 +134,17 @@ public class MongoMobile {
         if let cachedInstance = embeddedInstances[settings.dbPath] {
             instance = cachedInstance
         } else {
+            // NOTE: This is hack can be removed once SERVER-38943 is resolved. Also note
+            //       that the destroy code is not refactored into a common function because
+            //       we should be removing this code in the future.
+            if embeddedInstances.count > 0 {
+                self.embeddedClients.forEach { ref in ref.reference?.close() }
+                embeddedClients.removeAll()
+
+                for (_, instance) in embeddedInstances { try destroyInstance(instance) }
+                embeddedInstances.removeAll()
+            }
+
             // get the configuration as a JSON string
             let configuration = [
                 "storage": [
@@ -168,5 +173,14 @@ public class MongoMobile {
         let client = MongoClient(fromPointer: capiClient)
         self.embeddedClients.append(WeakRef(client))
         return client
+    }
+
+
+    private static func destroyInstance(_ instance: OpaquePointer) throws {
+        let status = mongo_embedded_v1_status_create()
+        let result = mongo_embedded_v1_error(mongo_embedded_v1_instance_destroy(instance, status))
+        if result != MONGO_EMBEDDED_V1_SUCCESS {
+            throw MongoEmbeddedV1Error(result, statusMessage: getStatusExplanation(status))
+        }
     }
 }

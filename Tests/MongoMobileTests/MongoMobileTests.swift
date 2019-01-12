@@ -68,7 +68,7 @@ final class MongoMobileTests: XCTestCase {
         let databasePathB = try createAndCleanTemporaryPath(at: "embedded-app-b")
         let clientB = try MongoMobile.create(MongoClientSettings(dbPath: databasePathB.path))
         try runTest(on: clientB)
-        // TODO: verify that clientA is closed, etc
+        // TODO: verify that clientA is closed when SWIFT-323 is completed
 
         let clientA2 = try MongoMobile.create(MongoClientSettings(dbPath: databasePathA.path))
         try runTest(on: clientA2)
