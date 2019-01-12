@@ -1,22 +1,32 @@
-@testable import MongoMobile
 import XCTest
+import MongoSwift
+
+@testable import MongoMobile
 
 final class MongoMobileTests: XCTestCase {
     static var allTests: [(String, (MongoMobileTests) -> () throws -> Void)] {
         return [
-            ("testMongoMobile", testMongoMobile)
+            ("testMongoMobileBasic", testMongoMobileBasic),
+            ("testSequentialAccess", testSequentialAccess)
         ]
     }
 
-    func testMongoMobile() throws {
-        try MongoMobile.initialize()
-        defer {
-            try? MongoMobile.close()
-        }
+    // NOTE: These only works because we have one test suite. These method are called
+    //       before/after all tests _per_ test suite. Will not work if another suite
+    //       is added.
+    override class func setUp() {
+        super.setUp()
+        try? MongoMobile.initialize()
+    }
 
-        // setup database
-        let documentPath = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        let databasePath = documentPath.appendingPathComponent("test-mongo-mobile")
+    override class func tearDown() {
+        super.tearDown()
+        try? MongoMobile.close()
+    }
+
+    func createAndCleanTemporaryPath(at path: String) throws -> URL {
+        let supportPath = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        let databasePath = supportPath.appendingPathComponent(path)
 
         do {
             try FileManager.default.removeItem(at: databasePath)
@@ -26,6 +36,11 @@ final class MongoMobileTests: XCTestCase {
             try FileManager.default.createDirectory(at: databasePath, withIntermediateDirectories: false)
         } catch {}
 
+        return databasePath
+    }
+
+    func testMongoMobileBasic() throws {
+        let databasePath = try createAndCleanTemporaryPath(at: "test-mongo-mobile")
         let settings = MongoClientSettings(dbPath: databasePath.path)
         let client = try MongoMobile.create(settings)
 
@@ -35,5 +50,27 @@ final class MongoMobileTests: XCTestCase {
         let findResult = try coll.find([ "_id": insertResult!.insertedId ])
         let docs = Array(findResult)
         XCTAssertEqual(docs[0]["test"] as? Int, 42)
+    }
+
+    func testSequentialAccess() throws {
+        func runTest(on client: MongoClient) throws {
+            let coll = try client.db("test").collection("foo")
+            let insertResult = try coll.insertOne([ "test": 42 ])
+            let findResult = try coll.find([ "_id": insertResult!.insertedId ])
+            let docs = Array(findResult)
+            XCTAssertEqual(docs[0]["test"] as? Int, 42)
+        }
+
+        let databasePathA = try createAndCleanTemporaryPath(at: "embedded-app-a")
+        let clientA = try MongoMobile.create(MongoClientSettings(dbPath: databasePathA.path))
+        try runTest(on: clientA)
+
+        let databasePathB = try createAndCleanTemporaryPath(at: "embedded-app-b")
+        let clientB = try MongoMobile.create(MongoClientSettings(dbPath: databasePathB.path))
+        try runTest(on: clientB)
+        // TODO: verify that clientA is closed, etc
+
+        let clientA2 = try MongoMobile.create(MongoClientSettings(dbPath: databasePathA.path))
+        try runTest(on: clientA2)
     }
 }
