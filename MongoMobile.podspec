@@ -17,7 +17,11 @@ Pod::Spec.new do |spec|
   spec.requires_arc = true
   spec.source_files = ["Sources/MongoMobile/**/*.swift"]
 
-  spec.dependency 'MongoSwift', '~> 0.0.7'
-  spec.dependency 'mongoc_embedded', '~> 4.0.4'
-  spec.dependency 'mongo_embedded', '~> 4.0.4'
+  spec.dependency "MongoSwift", "~> 0.0.7"
+  spec.dependency "mongoc_embedded", "~> 4.0.4"
+  spec.dependency "mongo_embedded", "~> 4.0.4"
+
+  spec.test_spec "Tests" do |test_spec|
+    test_spec.source_files = "Tests/MongoMobileTests/*.swift"
+  end
 end
