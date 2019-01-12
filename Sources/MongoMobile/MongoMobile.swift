@@ -134,9 +134,9 @@ public class MongoMobile {
         if let cachedInstance = embeddedInstances[settings.dbPath] {
             instance = cachedInstance
         } else {
-            // NOTE: This is hack can be removed once SERVER-38943 is resolved. Also note
+            // NOTE: This hack can be removed once SERVER-38943 is resolved. Also note
             //       that the destroy code is not refactored into a common function because
-            //       we should be removing this code in the future.
+            //       we should be removing this code in the near future.
             if embeddedInstances.count > 0 {
                 self.embeddedClients.forEach { ref in ref.reference?.close() }
                 embeddedClients.removeAll()
