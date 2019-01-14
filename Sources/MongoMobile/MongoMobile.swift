@@ -1,7 +1,7 @@
 import Foundation
-import MongoSwift
 import mongo_embedded
 import mongoc_embedded
+import MongoSwift
 
 /// Settings for constructing a `MongoClient`
 public struct MongoClientSettings {
@@ -42,8 +42,8 @@ public struct MongoEmbeddedV1Error: LocalizedError {
         return "\(error): \(statusMessage)"
     }
 
-    init(_ error: mongo_embedded_v1_error,
-         statusMessage: String) {
+    public init(_ error: mongo_embedded_v1_error,
+                statusMessage: String) {
         self.statusMessage = statusMessage
         self.error = error
     }
@@ -55,7 +55,9 @@ private func mongo_mobile_log_callback(userDataPtr: UnsafeMutableRawPointer?,
                                        componentPtr: UnsafePointer<Int8>?,
                                        contextPtr: UnsafePointer<Int8>?,
                                        severityPtr: Int32) {
+    // swiftlint:disable:next force_unwrapping - always returns a value if not null
     let message = messagePtr != nil ? String(cString: messagePtr!) : ""
+    // swiftlint:disable:next force_unwrapping - always returns a value if not null
     let component = componentPtr != nil ? String(cString: componentPtr!) : ""
     print("[\(component)] \(message)")
 }
@@ -96,7 +98,7 @@ public class MongoMobile {
             throw MongoMobileError.invalidInstance(message: getStatusExplanation(status))
         }
 
-        libraryInstance = instance
+        self.libraryInstance = instance
     }
 
     /**
@@ -104,14 +106,14 @@ public class MongoMobile {
      */
     public static func close() throws {
         self.embeddedClients.forEach { ref in ref.reference?.close() }
-        embeddedClients.removeAll()
+        self.embeddedClients.removeAll()
 
-        for (_, instance) in embeddedInstances { try destroyInstance(instance) }
-        embeddedInstances.removeAll()
+        for (_, instance) in self.embeddedInstances { try destroyInstance(instance) }
+        self.embeddedInstances.removeAll()
 
         let status = mongo_embedded_v1_status_create()
-        let result = mongo_embedded_v1_error(mongo_embedded_v1_lib_fini(libraryInstance, status))
-        if result != MONGO_EMBEDDED_V1_SUCCESS {
+        let result = mongo_embedded_v1_error(mongo_embedded_v1_lib_fini(self.libraryInstance, status))
+        guard result == MONGO_EMBEDDED_V1_SUCCESS else {
             throw MongoEmbeddedV1Error(result,
                                        statusMessage: getStatusExplanation(status))
         }
@@ -131,18 +133,18 @@ public class MongoMobile {
     public static func create(_ settings: MongoClientSettings) throws -> MongoClient {
         let status = mongo_embedded_v1_status_create()
         var instance: OpaquePointer?
-        if let cachedInstance = embeddedInstances[settings.dbPath] {
+        if let cachedInstance = self.embeddedInstances[settings.dbPath] {
             instance = cachedInstance
         } else {
             // NOTE: This hack can be removed once SERVER-38943 is resolved. Also note
             //       that the destroy code is not refactored into a common function because
             //       we should be removing this code in the near future.
-            if embeddedInstances.count > 0 {
+            if !self.embeddedInstances.isEmpty {
                 self.embeddedClients.forEach { ref in ref.reference?.close() }
-                embeddedClients.removeAll()
+                self.embeddedClients.removeAll()
 
-                for (_, instance) in embeddedInstances { try destroyInstance(instance) }
-                embeddedInstances.removeAll()
+                for (_, instance) in self.embeddedInstances { try destroyInstance(instance) }
+                self.embeddedInstances.removeAll()
             }
 
             // get the configuration as a JSON string
@@ -154,7 +156,7 @@ public class MongoMobile {
             let configurationData = try JSONSerialization.data(withJSONObject: configuration)
             let configurationString = String(data: configurationData, encoding: .utf8)
 
-            guard let library = libraryInstance else {
+            guard let library = self.libraryInstance else {
                 throw MongoMobileError.invalidLibrary()
             }
 
@@ -163,7 +165,7 @@ public class MongoMobile {
             }
 
             instance = capiInstance
-            embeddedInstances[settings.dbPath] = instance
+            self.embeddedInstances[settings.dbPath] = instance
         }
 
         guard let capiClient = mongoc_embedded_v1_client_create(instance) else {
@@ -175,11 +177,10 @@ public class MongoMobile {
         return client
     }
 
-
     private static func destroyInstance(_ instance: OpaquePointer) throws {
         let status = mongo_embedded_v1_status_create()
         let result = mongo_embedded_v1_error(mongo_embedded_v1_instance_destroy(instance, status))
-        if result != MONGO_EMBEDDED_V1_SUCCESS {
+        guard result == MONGO_EMBEDDED_V1_SUCCESS else {
             throw MongoEmbeddedV1Error(result, statusMessage: getStatusExplanation(status))
         }
     }
