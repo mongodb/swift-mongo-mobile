@@ -42,8 +42,7 @@ public struct MongoEmbeddedV1Error: LocalizedError {
         return "\(error): \(statusMessage)"
     }
 
-    public init(_ error: mongo_embedded_v1_error,
-                statusMessage: String) {
+    internal init(_ error: mongo_embedded_v1_error, statusMessage: String) {
         self.statusMessage = statusMessage
         self.error = error
     }
