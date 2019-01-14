@@ -1,0 +1,15 @@
+language: swift
+osx_image: xcode9.4
+
+before_install:
+  - gem install cocoapods --pre
+  - pod repo update
+
+before_script:
+  - wget https://github.com/realm/SwiftLint/releases/download/0.29.3/portable_swiftlint.zip -O /tmp/swiftlint.zip
+  - unzip /tmp/swiftlint.zip -d ${PWD}/bin
+  - export PATH=$PATH:${PWD}/bin
+
+script:
+  - swiftlint --strict
+  - pod lib lint --allow-warnings --fail-fast --verbose --platforms=ios
