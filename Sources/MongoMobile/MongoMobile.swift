@@ -48,19 +48,6 @@ public struct MongoEmbeddedV1Error: LocalizedError {
     }
 }
 
-/// Prints a log statement in the format `[component] message`.
-private func mongo_mobile_log_callback(userDataPtr: UnsafeMutableRawPointer?,
-                                       messagePtr: UnsafePointer<Int8>?,
-                                       componentPtr: UnsafePointer<Int8>?,
-                                       contextPtr: UnsafePointer<Int8>?,
-                                       severityPtr: Int32) {
-    // swiftlint:disable:next force_unwrapping - always returns a value if not null
-    let message = messagePtr != nil ? String(cString: messagePtr!) : ""
-    // swiftlint:disable:next force_unwrapping - always returns a value if not null
-    let component = componentPtr != nil ? String(cString: componentPtr!) : ""
-    print("[\(component)] \(message)")
-}
-
 private struct WeakRef<T> where T: AnyObject {
     weak var reference: T?
 
@@ -81,11 +68,22 @@ public class MongoMobile {
     private static var embeddedInstances = [String: OpaquePointer]()
     /// Cache embedded clients for cleanup
     private static var embeddedClients = [WeakRef<MongoClient>]()
+    /// Store user-provided logger.
+    internal static var logger: MongoMobileLogger?
 
     /**
      * Perform required operations to initialize the embedded server.
+     * 
+     * Parameters:
+     *  - logger: An optional `MongoMobileLogger` to use with the embedded server.
+     *            This logger will be used across all DBs and clients until the 
+     *            embedded server is shut down via `close()`.
+     *
+     * Throws:
+     *  - `MongoMobileError.invalidInstance` if there is any error initializing 
+     *    the embedded server.
      */
-    public static func initialize() throws {
+    public static func initialize(withLogger logger: MongoMobileLogger? = nil) throws {
         MongoSwift.initialize()
 
         let status = mongo_embedded_v1_status_create()
@@ -97,6 +95,7 @@ public class MongoMobile {
             throw MongoMobileError.invalidInstance(message: getStatusExplanation(status))
         }
 
+        self.logger = logger
         self.libraryInstance = instance
     }
 
@@ -116,7 +115,8 @@ public class MongoMobile {
             throw MongoEmbeddedV1Error(result,
                                        statusMessage: getStatusExplanation(status))
         }
-
+        self.logger = nil
+        self.libraryInstance = nil
         MongoSwift.cleanup()
     }
 
