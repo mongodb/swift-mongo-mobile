@@ -20,11 +20,12 @@ internal func mongo_mobile_log_callback(userDataPtr: UnsafeMutableRawPointer?,
 extension String {
     /// Returns a string created from the given pointer, or an empty
     /// string if the pointer is nil.
-    internal init(from ptr: UnsafePointer<Int8>?) {
+    fileprivate init(from ptr: UnsafePointer<Int8>?) {
         if let ptr = ptr {
-            return String(cString: ptr)
+            self = String(cString: ptr)
+        } else {
+            self = ""
         }
-        return ""
     }
 }
 
