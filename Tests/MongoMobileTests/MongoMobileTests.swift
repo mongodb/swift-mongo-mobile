@@ -13,8 +13,6 @@ final class MongoMobileTests: XCTestCase {
     }
 
     static var logger: TestLogger!
-    static var logMessages = [LogMessage]()
-    static var saveMessages = false
 
     // NOTE: These only works because we have one test suite. These method are called
     //       before/after all tests _per_ test suite. Will not work if another suite
@@ -71,12 +69,12 @@ final class MongoMobileTests: XCTestCase {
 
     // Some basic validation that we are getting log messages correctly.
     func testLogger() throws {
-        MongoMobileTests.saveMessages = true
-        defer { MongoMobileTests.saveMessages = false }
+        MongoMobileTests.logger.storeMessages = true
+        defer { MongoMobileTests.logger.storeMessages = false }
         let dbPath = try createAndCleanTemporaryPath(at: "test-logging")
         let client = try MongoMobile.create(MongoClientSettings(dbPath: dbPath.path))
         try runBasicInsertFindTest(on: client)
-        let messages = MongoMobileTests.logMessages
+        let messages = MongoMobileTests.logger.messages
 
         // There are likely more messages pertaining to setting FCV etc, but these are the
         // only messages that directly pertain to the ops we are performing: create embedded
@@ -95,14 +93,17 @@ struct LogMessage {
     let severity: LogSeverity
 }
 
-struct TestLogger: MongoMobileLogger {
+class TestLogger: MongoMobileLogger {
+    var messages = [LogMessage]()
+    var storeMessages = false
+
     func onMessage(message: String,
                    component: String,
                    context: String,
                    severity: LogSeverity) {
         print("[\(component)] \(message)")
-        if MongoMobileTests.saveMessages {
-            MongoMobileTests.logMessages.append(
+        if self.storeMessages {
+            self.messages.append(
                 LogMessage(message: message, component: component, context: context, severity: severity))
         }
     }
