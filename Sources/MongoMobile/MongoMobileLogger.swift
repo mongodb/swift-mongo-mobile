@@ -43,7 +43,7 @@ public protocol MongoMobileLogger {
      *   - severity: The severity level associated with this message.
      * 
      * - SeeAlso: https://docs.mongodb.com/manual/reference/log-messages/
-    */
+     */
     func onMessage(message: String,
                    component: String,
                    context: String,
