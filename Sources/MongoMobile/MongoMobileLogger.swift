@@ -33,16 +33,16 @@ extension String {
 /// for the embedded library.
 public protocol MongoMobileLogger {
     /**
-    * A callback that will be executed when a new message is produced
-    * by an embedded server.
-    *
-    * - Parameters:
-    *   - message: The text of the log message.
-    *   - component: Functional categorization of the message, e.g. "query" or "network".
-    *   - context: Describes the context in which this message occurred, e.g. "initandlisten".
-    *   - severity: The severity level associated with this message.
-    * 
-    * - SeeAlso: https://docs.mongodb.com/manual/reference/log-messages/
+     * A callback that will be executed when a new message is produced
+     * by an embedded server.
+     *
+     * - Parameters:
+     *   - message: The text of the log message.
+     *   - component: Functional categorization of the message, e.g. "query" or "network".
+     *   - context: Describes the context in which this message occurred, e.g. "initandlisten".
+     *   - severity: The severity level associated with this message.
+     * 
+     * - SeeAlso: https://docs.mongodb.com/manual/reference/log-messages/
     */
     func onMessage(message: String,
                    component: String,
