@@ -61,6 +61,19 @@ private func getStatusExplanation(_ status: OpaquePointer?) -> String {
     return String(cString: mongo_embedded_v1_status_get_explanation(status))
 }
 
+/// Options for initializing the embedded server.
+public struct MongoMobileOptions {
+    /// An optional `MongoMobileLogger` to use with the embedded server.
+    /// This logger will be used across all DBs and clients until the 
+    /// embedded server is shut down via `MongoMobile.close()`.
+    public var logger: MongoMobileLogger?
+
+    /// Initializes a new `MongoMobileOptions`.
+    public init(logger: MongoMobileLogger? = nil) {
+        self.logger = logger
+    }
+}
+
 /// A class containing static methods for working with MongoMobile.
 public class MongoMobile {
     private static var libraryInstance: OpaquePointer?
@@ -75,27 +88,30 @@ public class MongoMobile {
      * Perform required operations to initialize the embedded server.
      * 
      * Parameters:
-     *  - logger: An optional `MongoMobileLogger` to use with the embedded server.
-     *            This logger will be used across all DBs and clients until the 
-     *            embedded server is shut down via `close()`.
+     *  - options: options to set on the embedded server.        
      *
      * Throws:
      *  - `MongoMobileError.invalidInstance` if there is any error initializing 
      *    the embedded server.
      */
-    public static func initialize(withLogger logger: MongoMobileLogger? = nil) throws {
+    public static func initialize(_ options: MongoMobileOptions? = nil) throws {
         MongoSwift.initialize()
 
         let status = mongo_embedded_v1_status_create()
         var initParams = mongo_embedded_v1_init_params()
-        initParams.log_callback = mongo_mobile_log_callback
-        initParams.log_flags = UInt64(MONGO_EMBEDDED_V1_LOG_CALLBACK.rawValue)
+
+        if options?.logger != nil {
+            initParams.log_flags = UInt64(MONGO_EMBEDDED_V1_LOG_CALLBACK.rawValue)
+            initParams.log_callback = mongo_mobile_log_callback
+        } else {
+            initParams.log_flags = UInt64(MONGO_EMBEDDED_V1_LOG_NONE.rawValue)
+        }
 
         guard let instance = mongo_embedded_v1_lib_init(&initParams, status) else {
             throw MongoMobileError.invalidInstance(message: getStatusExplanation(status))
         }
 
-        self.logger = logger
+        self.logger = options?.logger
         self.libraryInstance = instance
     }
 

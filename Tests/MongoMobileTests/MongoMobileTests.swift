@@ -20,7 +20,7 @@ final class MongoMobileTests: XCTestCase {
     override class func setUp() {
         super.setUp()
         self.logger = TestLogger()
-        try? MongoMobile.initialize(withLogger: self.logger)
+        try? MongoMobile.initialize(MongoMobileOptions(logger: self.logger))
     }
 
     override class func tearDown() {
@@ -97,14 +97,14 @@ class TestLogger: MongoMobileLogger {
     var messages = [LogMessage]()
     var storeMessages = false
 
-    func onMessage(message: String,
-                   component: String,
-                   context: String,
+    func onMessage(message: @autoclosure () -> String,
+                   component: @autoclosure () -> String,
+                   context: @autoclosure () -> String,
                    severity: LogSeverity) {
-        print("[\(component)] \(message)")
+        print("[\(component())] \(message())")
         if self.storeMessages {
             self.messages.append(
-                LogMessage(message: message, component: component, context: context, severity: severity))
+                LogMessage(message: message(), component: component(), context: context(), severity: severity))
         }
     }
 }

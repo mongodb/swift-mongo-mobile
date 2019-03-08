@@ -8,13 +8,12 @@ internal func mongo_mobile_log_callback(userDataPtr: UnsafeMutableRawPointer?,
     guard let logger = MongoMobile.logger else {
         return
     }
-
-    let message = String(from: messagePtr)
-    let component = String(from: componentPtr)
-    let context = String(from: contextPtr)
     // swiftlint:disable:next force_unwrapping - server should always gives a valid raw value.
     let severity = LogSeverity(rawValue: severity)!
-    logger.onMessage(message: message, component: component, context: context, severity: severity)
+    logger.onMessage(message: String(from: messagePtr),
+                     component: String(from: componentPtr),
+                     context: String(from: contextPtr),
+                     severity: severity)
 }
 
 extension String {
@@ -44,9 +43,9 @@ public protocol MongoMobileLogger {
      * 
      * - SeeAlso: https://docs.mongodb.com/manual/reference/log-messages/
      */
-    func onMessage(message: String,
-                   component: String,
-                   context: String,
+    func onMessage(message: @autoclosure () -> String,
+                   component: @autoclosure () -> String,
+                   context: @autoclosure () -> String,
                    severity: LogSeverity)
 }
 
@@ -90,10 +89,9 @@ public enum LogSeverity: RawRepresentable {
             self = .info
         case 0:
             self = .log
-        case 1...5:
-            self = .debug(verbosity: rawValue)
         default:
-            return nil
+            assert((1...5).contains(rawValue), "unexpected log level \(rawValue)")
+            self = .debug(verbosity: rawValue)
         }
     }
 }
