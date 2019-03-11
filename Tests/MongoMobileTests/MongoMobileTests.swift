@@ -20,7 +20,7 @@ final class MongoMobileTests: XCTestCase {
     override class func setUp() {
         super.setUp()
         self.logger = TestLogger()
-        try? MongoMobile.initialize(MongoMobileOptions(logger: self.logger))
+        try? MongoMobile.initialize(options: MongoMobileOptions(logger: self.logger))
     }
 
     override class func tearDown() {

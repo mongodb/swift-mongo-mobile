@@ -94,7 +94,7 @@ public class MongoMobile {
      *  - `MongoMobileError.invalidInstance` if there is any error initializing 
      *    the embedded server.
      */
-    public static func initialize(_ options: MongoMobileOptions? = nil) throws {
+    public static func initialize(options: MongoMobileOptions? = nil) throws {
         MongoSwift.initialize()
 
         let status = mongo_embedded_v1_status_create()
