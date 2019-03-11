@@ -48,19 +48,6 @@ public struct MongoEmbeddedV1Error: LocalizedError {
     }
 }
 
-/// Prints a log statement in the format `[component] message`.
-private func mongo_mobile_log_callback(userDataPtr: UnsafeMutableRawPointer?,
-                                       messagePtr: UnsafePointer<Int8>?,
-                                       componentPtr: UnsafePointer<Int8>?,
-                                       contextPtr: UnsafePointer<Int8>?,
-                                       severityPtr: Int32) {
-    // swiftlint:disable:next force_unwrapping - always returns a value if not null
-    let message = messagePtr != nil ? String(cString: messagePtr!) : ""
-    // swiftlint:disable:next force_unwrapping - always returns a value if not null
-    let component = componentPtr != nil ? String(cString: componentPtr!) : ""
-    print("[\(component)] \(message)")
-}
-
 private struct WeakRef<T> where T: AnyObject {
     weak var reference: T?
 
@@ -74,6 +61,19 @@ private func getStatusExplanation(_ status: OpaquePointer?) -> String {
     return String(cString: mongo_embedded_v1_status_get_explanation(status))
 }
 
+/// Options for initializing the embedded server.
+public struct MongoMobileOptions {
+    /// An optional `MongoMobileLogger` to use with the embedded server.
+    /// This logger will be used across all DBs and clients until the 
+    /// embedded server is shut down via `MongoMobile.close()`.
+    public var logger: MongoMobileLogger?
+
+    /// Initializes a new `MongoMobileOptions`.
+    public init(logger: MongoMobileLogger? = nil) {
+        self.logger = logger
+    }
+}
+
 /// A class containing static methods for working with MongoMobile.
 public class MongoMobile {
     private static var libraryInstance: OpaquePointer?
@@ -81,22 +81,37 @@ public class MongoMobile {
     private static var embeddedInstances = [String: OpaquePointer]()
     /// Cache embedded clients for cleanup
     private static var embeddedClients = [WeakRef<MongoClient>]()
+    /// Store user-provided logger.
+    internal static var logger: MongoMobileLogger?
 
     /**
      * Perform required operations to initialize the embedded server.
+     * 
+     * Parameters:
+     *  - options: options to set on the embedded server.        
+     *
+     * Throws:
+     *  - `MongoMobileError.invalidInstance` if there is any error initializing 
+     *    the embedded server.
      */
-    public static func initialize() throws {
+    public static func initialize(options: MongoMobileOptions? = nil) throws {
         MongoSwift.initialize()
 
         let status = mongo_embedded_v1_status_create()
         var initParams = mongo_embedded_v1_init_params()
-        initParams.log_callback = mongo_mobile_log_callback
-        initParams.log_flags = UInt64(MONGO_EMBEDDED_V1_LOG_CALLBACK.rawValue)
+
+        if options?.logger != nil {
+            initParams.log_flags = UInt64(MONGO_EMBEDDED_V1_LOG_CALLBACK.rawValue)
+            initParams.log_callback = mongo_mobile_log_callback
+        } else {
+            initParams.log_flags = UInt64(MONGO_EMBEDDED_V1_LOG_NONE.rawValue)
+        }
 
         guard let instance = mongo_embedded_v1_lib_init(&initParams, status) else {
             throw MongoMobileError.invalidInstance(message: getStatusExplanation(status))
         }
 
+        self.logger = options?.logger
         self.libraryInstance = instance
     }
 
@@ -116,7 +131,8 @@ public class MongoMobile {
             throw MongoEmbeddedV1Error(result,
                                        statusMessage: getStatusExplanation(status))
         }
-
+        self.logger = nil
+        self.libraryInstance = nil
         MongoSwift.cleanup()
     }
 
