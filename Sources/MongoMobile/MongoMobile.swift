@@ -135,8 +135,13 @@ public class MongoMobile {
      *
      * - Throws:
      *   - `MongoMobileError.embeddedMongoError` if an error occurs while de-initializing the embedded server.
+     *   - `MongoMobileError.logicError` if MongoMobile has not been initialized yet.
      */
     public static func close() throws {
+        guard self.libraryInstance != nil else {
+            throw MongoMobileError.logicError(message: "MongoMobile must be initialized before closing")
+        }
+
         self.embeddedClients.forEach { ref in ref.reference?.close() }
         self.embeddedClients.removeAll()
 
