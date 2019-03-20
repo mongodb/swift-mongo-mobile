@@ -33,7 +33,6 @@ public enum MongoMobileError: LocalizedError {
     /// Thrown when MongoMobile is incorrectly used.
     case logicError(message: String)
 
-
     /// a string to be printed out when the error is thrown
     public var errorDescription: String? {
         switch self {
