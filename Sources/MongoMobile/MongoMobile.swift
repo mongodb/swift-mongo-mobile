@@ -40,10 +40,10 @@ public enum MongoMobileError: LocalizedError {
     }
 }
 
-internal typealias mongo_embedded_v1_status_t = OpaquePointer
+internal typealias mongo_embedded_v1_status = OpaquePointer
 
 /// Given a `mongo_embedded_v1_status`, get an appropriate `MongoMobileError`.
-internal func parseMongoEmbeddedV1Status(_ status: mongo_embedded_v1_status_t?) -> MongoMobileError {
+internal func parseMongoEmbeddedV1Status(_ status: mongo_embedded_v1_status?) -> MongoMobileError {
     let error = mongo_embedded_v1_error(rawValue: mongo_embedded_v1_status_get_error(status))
 
     switch error {
@@ -57,12 +57,12 @@ internal func parseMongoEmbeddedV1Status(_ status: mongo_embedded_v1_status_t?) 
 }
 
 /// Given a `mongo_embedded_v1_status`, get the status's explanation.
-private func getStatusExplanation(_ status: mongo_embedded_v1_status_t?) -> String {
+private func getStatusExplanation(_ status: mongo_embedded_v1_status?) -> String {
     return String(cString: mongo_embedded_v1_status_get_explanation(status))
 }
 
 /// Given a `mongo_embedded_v1_status`, get the status's error code.
-private func getStatusCode(_ status: mongo_embedded_v1_status_t?) -> ServerErrorCode {
+private func getStatusCode(_ status: mongo_embedded_v1_status?) -> ServerErrorCode {
     return ServerErrorCode(mongo_embedded_v1_status_get_code(status))
 }
 
