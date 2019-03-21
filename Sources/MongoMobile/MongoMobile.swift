@@ -40,8 +40,10 @@ public enum MongoMobileError: LocalizedError {
     }
 }
 
-/// Given an `OpaquePointer` to a `mongo_embedded_v1_status`, get an appropriate `MongoMobileError`.
-internal func parseEmbeddedMongoError(_ status: OpaquePointer?) -> MongoMobileError {
+internal typealias mongo_embedded_v1_status_t = OpaquePointer
+
+/// Given a `mongo_embedded_v1_status`, get an appropriate `MongoMobileError`.
+internal func parseMongoEmbeddedV1Status(_ status: mongo_embedded_v1_status_t?) -> MongoMobileError {
     let error = mongo_embedded_v1_error(rawValue: mongo_embedded_v1_status_get_error(status))
 
     switch error {
@@ -54,22 +56,22 @@ internal func parseEmbeddedMongoError(_ status: OpaquePointer?) -> MongoMobileEr
     }
 }
 
+/// Given a `mongo_embedded_v1_status`, get the status's explanation.
+private func getStatusExplanation(_ status: mongo_embedded_v1_status_t?) -> String {
+    return String(cString: mongo_embedded_v1_status_get_explanation(status))
+}
+
+/// Given a `mongo_embedded_v1_status`, get the status's error code.
+private func getStatusCode(_ status: mongo_embedded_v1_status_t?) -> ServerErrorCode {
+    return ServerErrorCode(mongo_embedded_v1_status_get_code(status))
+}
+
 private struct WeakRef<T> where T: AnyObject {
     weak var reference: T?
 
     init(_ reference: T) {
         self.reference = reference
     }
-}
-
-/// Given an `OpaquePointer` to a `mongo_embedded_v1_status`, get the status's explanation.
-private func getStatusExplanation(_ status: OpaquePointer?) -> String {
-    return String(cString: mongo_embedded_v1_status_get_explanation(status))
-}
-
-/// Given an `OpaquePointer` to a `mongo_embedded_v1_status`, get the status's error code.
-private func getStatusCode(_ status: OpaquePointer?) -> ServerErrorCode {
-    return ServerErrorCode(mongo_embedded_v1_status_get_code(status))
 }
 
 /// Options for initializing the embedded server.
@@ -123,7 +125,7 @@ public class MongoMobile {
         }
 
         guard let instance = mongo_embedded_v1_lib_init(&initParams, status) else {
-            throw parseEmbeddedMongoError(status)
+            throw parseMongoEmbeddedV1Status(status)
         }
 
         self.logger = options?.logger
@@ -151,7 +153,7 @@ public class MongoMobile {
         let status = mongo_embedded_v1_status_create()
         let result = mongo_embedded_v1_error(mongo_embedded_v1_lib_fini(self.libraryInstance, status))
         guard result == MONGO_EMBEDDED_V1_SUCCESS else {
-            throw parseEmbeddedMongoError(status)
+            throw parseMongoEmbeddedV1Status(status)
         }
         self.logger = nil
         self.libraryInstance = nil
@@ -203,7 +205,7 @@ public class MongoMobile {
             }
 
             guard let capiInstance = mongo_embedded_v1_instance_create(library, configurationString, status) else {
-                throw parseEmbeddedMongoError(status)
+                throw parseMongoEmbeddedV1Status(status)
             }
 
             instance = capiInstance
@@ -223,7 +225,7 @@ public class MongoMobile {
         let status = mongo_embedded_v1_status_create()
         let result = mongo_embedded_v1_error(mongo_embedded_v1_instance_destroy(instance, status))
         guard result == MONGO_EMBEDDED_V1_SUCCESS else {
-            throw parseEmbeddedMongoError(status)
+            throw parseMongoEmbeddedV1Status(status)
         }
     }
 }
