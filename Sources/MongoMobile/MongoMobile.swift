@@ -14,38 +14,56 @@ public struct MongoClientSettings {
     }
 }
 
+/// A MongoDB server error code.
+/// - SeeAlso: https://github.com/mongodb/mongo/blob/master/src/mongo/base/error_codes.err
+public typealias ServerErrorCode = Int
+
 public enum MongoMobileError: LocalizedError {
-    case invalidClient()
-    case invalidInstance(message: String)
-    case invalidLibrary()
-    case instanceDropError(message: String)
-    case cleanupError(message: String)
+    /// Thrown when MongoMobile is incorrectly used.
+    case logicError(message: String)
+
+    /// Thrown when an embedded mongo server instance returns an error.
+    /// - SeeAlso: https://github.com/mongodb/mongo/blob/master/src/mongo/base/error_codes.err
+    case embeddedMongoError(code: ServerErrorCode, message: String)
+
+    /// Thrown when MongoMobile encounters internal errors it cannot recover from.
+    case internalError(message: String)
 
     /// a string to be printed out when the error is thrown
     public var errorDescription: String? {
         switch self {
-        case let .invalidInstance(message),
-            let .instanceDropError(message),
-            let .cleanupError(message):
+        case let .embeddedMongoError(_, message),
+             let .internalError(message),
+             let .logicError(message):
             return message
-        default:
-            return nil
         }
     }
 }
 
-public struct MongoEmbeddedV1Error: LocalizedError {
-    private let statusMessage: String
-    private let error: mongo_embedded_v1_error
+internal typealias mongo_embedded_v1_status = OpaquePointer
 
-    public var errorDescription: String? {
-        return "\(error): \(statusMessage)"
-    }
+/// Given a `mongo_embedded_v1_status`, get an appropriate `MongoMobileError`.
+internal func parseMongoEmbeddedV1Status(_ status: mongo_embedded_v1_status?) -> MongoMobileError {
+    let error = mongo_embedded_v1_error(rawValue: mongo_embedded_v1_status_get_error(status))
 
-    internal init(_ error: mongo_embedded_v1_error, statusMessage: String) {
-        self.statusMessage = statusMessage
-        self.error = error
+    switch error {
+    case MONGO_EMBEDDED_V1_ERROR_EXCEPTION:
+        return .embeddedMongoError(code: getStatusCode(status), message: getStatusExplanation(status))
+    case MONGO_EMBEDDED_V1_ERROR_LIBRARY_ALREADY_INITIALIZED, MONGO_EMBEDDED_V1_ERROR_LIBRARY_NOT_INITIALIZED:
+        return .logicError(message: getStatusExplanation(status))
+    default:
+        return .internalError(message: getStatusExplanation(status))
     }
+}
+
+/// Given a `mongo_embedded_v1_status`, get the status's explanation.
+private func getStatusExplanation(_ status: mongo_embedded_v1_status?) -> String {
+    return String(cString: mongo_embedded_v1_status_get_explanation(status))
+}
+
+/// Given a `mongo_embedded_v1_status`, get the status's error code.
+private func getStatusCode(_ status: mongo_embedded_v1_status?) -> ServerErrorCode {
+    return ServerErrorCode(mongo_embedded_v1_status_get_code(status))
 }
 
 private struct WeakRef<T> where T: AnyObject {
@@ -54,11 +72,6 @@ private struct WeakRef<T> where T: AnyObject {
     init(_ reference: T) {
         self.reference = reference
     }
-}
-
-/// Given an `OpaquePointer` to a `mongo_embedded_v1_status`, get the status's explanation.
-private func getStatusExplanation(_ status: OpaquePointer?) -> String {
-    return String(cString: mongo_embedded_v1_status_get_explanation(status))
 }
 
 /// Options for initializing the embedded server.
@@ -91,10 +104,14 @@ public class MongoMobile {
      *  - options: options to set on the embedded server.        
      *
      * Throws:
-     *  - `MongoMobileError.invalidInstance` if there is any error initializing 
-     *    the embedded server.
+     *  - `MongoMobileError.logicError` if `MongoMobile` has already been initialized.
+     *  - `MongoMobileError.embeddedMongoError` if there is any error initializing the embedded server.
      */
     public static func initialize(options: MongoMobileOptions? = nil) throws {
+        guard self.libraryInstance == nil else {
+            throw MongoMobileError.logicError(message: "MongoMobile already initialized")
+        }
+
         MongoSwift.initialize()
 
         let status = mongo_embedded_v1_status_create()
@@ -108,7 +125,7 @@ public class MongoMobile {
         }
 
         guard let instance = mongo_embedded_v1_lib_init(&initParams, status) else {
-            throw MongoMobileError.invalidInstance(message: getStatusExplanation(status))
+            throw parseMongoEmbeddedV1Status(status)
         }
 
         self.logger = options?.logger
@@ -117,8 +134,16 @@ public class MongoMobile {
 
     /**
      * Perform required operations to clean up the embedded server.
+     *
+     * - Throws:
+     *   - `MongoMobileError.embeddedMongoError` if an error occurs while de-initializing the embedded server.
+     *   - `MongoMobileError.logicError` if MongoMobile has not been initialized yet.
      */
     public static func close() throws {
+        guard self.libraryInstance != nil else {
+            throw MongoMobileError.logicError(message: "MongoMobile must be initialized before closing")
+        }
+
         self.embeddedClients.forEach { ref in ref.reference?.close() }
         self.embeddedClients.removeAll()
 
@@ -128,8 +153,7 @@ public class MongoMobile {
         let status = mongo_embedded_v1_status_create()
         let result = mongo_embedded_v1_error(mongo_embedded_v1_lib_fini(self.libraryInstance, status))
         guard result == MONGO_EMBEDDED_V1_SUCCESS else {
-            throw MongoEmbeddedV1Error(result,
-                                       statusMessage: getStatusExplanation(status))
+            throw parseMongoEmbeddedV1Status(status)
         }
         self.logger = nil
         self.libraryInstance = nil
@@ -144,6 +168,11 @@ public class MongoMobile {
      *   - settings: required settings for client creation
      *
      * - Returns: a new `MongoClient`
+     *
+     * - Throws:
+     *   - `MongoMobileError.logicError` if `MongoMobile.initialize` has not been called yet.
+     *   - `MongoMobileError.embeddedMongoError` if an instance corresponding to `dbPath` isn't cached and an error
+     *     occurs while creating it.
      */
     public static func create(_ settings: MongoClientSettings) throws -> MongoClient {
         let status = mongo_embedded_v1_status_create()
@@ -172,11 +201,11 @@ public class MongoMobile {
             let configurationString = String(data: configurationData, encoding: .utf8)
 
             guard let library = self.libraryInstance else {
-                throw MongoMobileError.invalidLibrary()
+                throw MongoMobileError.logicError(message: "MongoMobile must be initialized before calling create()")
             }
 
             guard let capiInstance = mongo_embedded_v1_instance_create(library, configurationString, status) else {
-                throw MongoMobileError.invalidInstance(message: getStatusExplanation(status))
+                throw parseMongoEmbeddedV1Status(status)
             }
 
             instance = capiInstance
@@ -184,7 +213,7 @@ public class MongoMobile {
         }
 
         guard let capiClient = mongoc_embedded_v1_client_create(instance) else {
-            throw MongoMobileError.invalidClient()
+            throw MongoMobileError.internalError(message: "Failed to get a client for the embedded mongo instance.")
         }
 
         let client = MongoClient(fromPointer: capiClient)
@@ -196,7 +225,7 @@ public class MongoMobile {
         let status = mongo_embedded_v1_status_create()
         let result = mongo_embedded_v1_error(mongo_embedded_v1_instance_destroy(instance, status))
         guard result == MONGO_EMBEDDED_V1_SUCCESS else {
-            throw MongoEmbeddedV1Error(result, statusMessage: getStatusExplanation(status))
+            throw parseMongoEmbeddedV1Status(status)
         }
     }
 }
