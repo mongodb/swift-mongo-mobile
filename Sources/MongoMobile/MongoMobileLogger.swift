@@ -16,6 +16,8 @@ internal func mongo_mobile_log_callback(userDataPtr: UnsafeMutableRawPointer?,
                      severity: severity)
 }
 
+// Failing due to https://github.com/realm/SwiftLint/issues/2705
+// swiftlint:disable:next explicit_acl
 extension String {
     /// Returns a string created from the given pointer, or an empty
     /// string if the pointer is nil.

@@ -67,9 +67,9 @@ private func getStatusCode(_ status: mongo_embedded_v1_status?) -> ServerErrorCo
 }
 
 private struct WeakRef<T> where T: AnyObject {
-    weak var reference: T?
+    fileprivate weak var reference: T?
 
-    init(_ reference: T) {
+    fileprivate init(_ reference: T) {
         self.reference = reference
     }
 }
