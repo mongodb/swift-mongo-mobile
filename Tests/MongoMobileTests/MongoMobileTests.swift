@@ -38,7 +38,7 @@ final class MongoMobileTests: XCTestCase {
     }
 
     func runBasicInsertFindTest(on client: MongoClient) throws {
-        let coll = try client.db("test").collection("foo")
+        let coll = client.db("test").collection("foo")
         let insertResult = try coll.insertOne([ "test": 42 ])
         // swiftlint:disable:next force_unwrapping - always returns a value if succeeded
         let findResult = try coll.find([ "_id": insertResult!.insertedId ])
