@@ -26,6 +26,7 @@ Pod::Spec.new do |spec|
   spec.dependency "mongo_embedded", "~> 4.0.4"
 
   spec.test_spec "Tests" do |test_spec|
+    test_spec.ios.deployment_target = "11.0"
     test_spec.source_files = "Tests/MongoMobileTests/*.swift"
   end
 end
