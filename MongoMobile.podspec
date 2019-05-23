@@ -3,7 +3,7 @@ Pod::Spec.new do |spec|
   spec.version    = "0.1.0"
   spec.summary    = "An embedded version of MongoDB for mobile"
   spec.homepage   = "https://github.com/mongodb/swift-mongo-mobile"
-  spec.license    = 'AGPL 3.0'
+  spec.license    = 'Apache License, Version 2.0'
   spec.authors    = {
     "Matt Broadstone" => "mbroadst@mongodb.com",
     "Kaitlin Mahar" => "kaitlin.mahar@mongodb.com",
