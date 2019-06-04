@@ -112,7 +112,7 @@ public class MongoMobile {
             throw MongoMobileError.logicError(message: "MongoMobile already initialized")
         }
 
-        MongoSwift.initialize()
+        mongoc_init()
 
         let status = mongo_embedded_v1_status_create()
         var initParams = mongo_embedded_v1_init_params()
@@ -157,7 +157,7 @@ public class MongoMobile {
         }
         self.logger = nil
         self.libraryInstance = nil
-        MongoSwift.cleanup()
+        cleanupMongoSwift()
     }
 
     /**
@@ -216,7 +216,7 @@ public class MongoMobile {
             throw MongoMobileError.internalError(message: "Failed to get a client for the embedded mongo instance.")
         }
 
-        let client = MongoClient(fromPointer: capiClient)
+        let client = MongoClient(stealing: capiClient)
         self.embeddedClients.append(WeakRef(client))
         return client
     }
